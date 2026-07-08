@@ -1,0 +1,190 @@
+@import "tailwindcss";
+
+:root {
+  /* surfaces */
+  --background: #fafaf9;
+  --surface: #ffffff;
+  --surface-2: #f5f5f4;
+  --canvas: #f8f8f7;
+  --canvas-dot: #d6d5d2;
+  /* text */
+  --foreground: #1c1917;
+  --muted: #78716c;
+  --faint: #a8a29e;
+  /* lines */
+  --border: #e7e5e4;
+  --border-strong: #d6d3d1;
+  /* accent */
+  --accent: #6366f1;
+  --accent-strong: #4f46e5;
+  --accent-soft: #eef2ff;
+  /* status */
+  --success: #10b981;
+  --success-soft: #ecfdf5;
+  --danger: #f43f5e;
+  --danger-soft: #fff1f2;
+  --warning: #f59e0b;
+  --warning-soft: #fffbeb;
+  /* method hues */
+  --m-get: #059669;
+  --m-get-bg: #ecfdf5;
+  --m-post: #4f46e5;
+  --m-post-bg: #eef2ff;
+  --m-put: #d97706;
+  --m-put-bg: #fffbeb;
+  --m-patch: #7c3aed;
+  --m-patch-bg: #f5f3ff;
+  --m-delete: #e11d48;
+  --m-delete-bg: #fff1f2;
+
+  --shadow-node: 0 1px 2px rgb(28 25 23 / 0.05), 0 4px 12px rgb(28 25 23 / 0.05);
+  --shadow-panel: 0 1px 3px rgb(28 25 23 / 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #131211;
+    --surface: #1c1a19;
+    --surface-2: #232120;
+    --canvas: #161514;
+    --canvas-dot: #33302e;
+    --foreground: #e7e5e4;
+    --muted: #a8a29e;
+    --faint: #6b6560;
+    --border: #2b2827;
+    --border-strong: #3a3634;
+    --accent: #818cf8;
+    --accent-strong: #6366f1;
+    --accent-soft: #26264a;
+    --success: #34d399;
+    --success-soft: #0c2b21;
+    --danger: #fb7185;
+    --danger-soft: #35181d;
+    --warning: #fbbf24;
+    --warning-soft: #2e2410;
+    --m-get: #34d399;
+    --m-get-bg: #0c2b21;
+    --m-post: #818cf8;
+    --m-post-bg: #26264a;
+    --m-put: #fbbf24;
+    --m-put-bg: #2e2410;
+    --m-patch: #a78bfa;
+    --m-patch-bg: #29204a;
+    --m-delete: #fb7185;
+    --m-delete-bg: #35181d;
+    --shadow-node: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.3);
+    --shadow-panel: 0 1px 3px rgb(0 0 0 / 0.4);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-canvas: var(--canvas);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --shadow-node: var(--shadow-node);
+  --shadow-panel: var(--shadow-panel);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- React Flow theming ---- */
+.react-flow {
+  background: var(--canvas);
+}
+.react-flow__edge-path {
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--accent);
+}
+.react-flow__edge.edge-running .react-flow__edge-path {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  animation: edge-dash 0.5s linear infinite;
+}
+.react-flow__edge.edge-done .react-flow__edge-path {
+  stroke: var(--success);
+}
+@keyframes edge-dash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+.react-flow__handle {
+  width: 9px;
+  height: 9px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+}
+.react-flow__handle:hover,
+.react-flow__handle.connectionindicator:hover {
+  border-color: var(--accent);
+}
+.react-flow__minimap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.react-flow__minimap-mask {
+  fill: color-mix(in srgb, var(--surface-2) 70%, transparent);
+}
+.react-flow__minimap-node {
+  fill: var(--border-strong);
+}
+.react-flow__controls {
+  box-shadow: var(--shadow-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  fill: var(--muted);
+}
+.react-flow__controls-button:hover {
+  background: var(--surface-2);
+}
+.react-flow__attribution {
+  background: transparent;
+  color: var(--faint);
+}
+
+@keyframes pulse-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+}
+.node-running {
+  animation: pulse-ring 1.2s ease-in-out infinite;
+}
