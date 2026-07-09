@@ -5,8 +5,16 @@ updates:
     schedule:
       interval: weekly
     groups:
-      all:
-        patterns: ["*"]
+      # Batch only safe bumps; majors come as separate, reviewable PRs.
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # typescript + eslint majors are constrained by eslint-config-next / next
+      # peers — a jump (e.g. TS 7 preview, ESLint 10) breaks the build.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
   - package-ecosystem: github-actions
     directory: /
     schedule:
