@@ -1,4 +1,4 @@
-import { dash } from "@better-auth/infra";
+import { dash, sendEmail } from "@better-auth/infra";
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -17,6 +17,18 @@ export const auth = betterAuth({
   // ngrok tunnel (for OAuth callbacks); trust both so neither trips the
   // origin check
   trustedOrigins: ["http://localhost:3000"],
+  // One user per email regardless of sign-in method: first visit creates the
+  // user, later visits with any method log into the same account. Google and
+  // GitHub verify emails, so linking on their say-so is safe;
+  // requireLocalEmailVerified is off so a password-first user (unverified)
+  // can still come back through OAuth instead of hitting account_not_linked.
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google", "github"],
+      requireLocalEmailVerified: false,
+    },
+  },
   emailAndPassword: { enabled: true },
   socialProviders: {
     ...(googleConfigured
@@ -39,8 +51,34 @@ export const auth = betterAuth({
   plugins: [
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
-        // ponytail: no mailer yet — log OTP in dev so the progressive flow is testable
-        console.log(`[email-otp] ${type} for ${email}: ${otp}`);
+        // No Dash key (bare local dev): log the code instead of sending
+        if (!process.env.BETTER_AUTH_API_KEY) {
+          console.log(`[email-otp] ${type} for ${email}: ${otp}`);
+          return;
+        }
+        const template =
+          type === "sign-in"
+            ? "sign-in-otp"
+            : type === "forget-password"
+              ? "reset-password-otp"
+              : "verify-email-otp";
+        const result = await sendEmail(
+          {
+            template,
+            to: email,
+            variables: {
+              otpCode: otp,
+              userEmail: email,
+              appName: "Orqly",
+              expirationMinutes: "5",
+            },
+          },
+          // same cold-start allowance as the dash plugin below
+          { apiTimeout: 15_000 },
+        );
+        if (!result.success) {
+          throw new Error(`OTP email failed: ${result.error}`);
+        }
       },
     }),
     passkey(),
