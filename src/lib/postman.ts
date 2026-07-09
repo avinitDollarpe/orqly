@@ -80,7 +80,7 @@ function bodyOf(b: PmBody | undefined): string {
     }
     return JSON.stringify({ query: b.graphql.query ?? "", variables: vars }, null, 2);
   }
-  // ponytail: formdata/file bodies unsupported — those requests import without a body
+  // ponytail: formdata/file bodies unsupported — those requests import without a body. add multipart parsing when a user imports a collection whose requests rely on formdata
   return b.raw ?? "";
 }
 
