@@ -47,3 +47,9 @@ export const environments = pgTable("environments", {
   vars: jsonb("vars").notNull().default([]),
   ...timestamps,
 });
+
+/** Emails collected on the pre-launch waitlist page (no account attached). */
+export const waitlist = pgTable("waitlist", {
+  email: text("email").primaryKey(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
