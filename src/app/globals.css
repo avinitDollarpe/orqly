@@ -1,80 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  /* surfaces */
-  --background: #fafaf9;
-  --surface: #ffffff;
-  --surface-2: #f5f5f4;
-  --canvas: #f8f8f7;
-  --canvas-dot: #d6d5d2;
+  /* Ostium trading-app palette (app.ostium.com) · neutral black · cool grey ink · orange primary */
+  --background: #070606;
+  --surface: #141313;
+  --surface-2: #1e1e1f;
+  --canvas: #070606;
+  --canvas-dot: #252424;
   /* text */
-  --foreground: #1c1917;
-  --muted: #78716c;
-  --faint: #a8a29e;
+  --foreground: #d0dbda;
+  --muted: color-mix(in srgb, #d0dbda 60%, #070606);
+  --faint: color-mix(in srgb, #d0dbda 38%, #070606);
   /* lines */
-  --border: #e7e5e4;
-  --border-strong: #d6d3d1;
-  /* accent */
-  --accent: #6366f1;
-  --accent-strong: #4f46e5;
-  --accent-soft: #eef2ff;
+  --border: color-mix(in srgb, #d0dbda 10%, #070606);
+  --border-strong: #333333;
+  /* accent — Ostium orange */
+  --accent: #ff5a19;
+  --accent-strong: #f04400;
+  --accent-soft: color-mix(in srgb, #ff5a19 10%, #141313);
+  --on-accent: #ffffff;
   /* status */
-  --success: #10b981;
-  --success-soft: #ecfdf5;
-  --danger: #f43f5e;
-  --danger-soft: #fff1f2;
-  --warning: #f59e0b;
-  --warning-soft: #fffbeb;
+  --success: #14db7f;
+  --success-soft: color-mix(in srgb, #14db7f 12%, #141313);
+  --danger: #dd2545;
+  --danger-soft: color-mix(in srgb, #dd2545 12%, #141313);
+  --warning: #ffc107;
+  --warning-soft: color-mix(in srgb, #ffc107 12%, #141313);
   /* method hues */
-  --m-get: #059669;
-  --m-get-bg: #ecfdf5;
-  --m-post: #4f46e5;
-  --m-post-bg: #eef2ff;
-  --m-put: #d97706;
-  --m-put-bg: #fffbeb;
-  --m-patch: #7c3aed;
-  --m-patch-bg: #f5f3ff;
-  --m-delete: #e11d48;
-  --m-delete-bg: #fff1f2;
+  --m-get: #14db7f;
+  --m-get-bg: color-mix(in srgb, #14db7f 10%, #141313);
+  --m-post: #ff5a19;
+  --m-post-bg: color-mix(in srgb, #ff5a19 10%, #141313);
+  --m-put: #ffc107;
+  --m-put-bg: color-mix(in srgb, #ffc107 10%, #141313);
+  --m-patch: color-mix(in srgb, #d0dbda 70%, #070606);
+  --m-patch-bg: #1e1e1f;
+  --m-delete: #dd2545;
+  --m-delete-bg: color-mix(in srgb, #dd2545 10%, #141313);
 
-  --shadow-node: 0 1px 2px rgb(28 25 23 / 0.05), 0 4px 12px rgb(28 25 23 / 0.05);
-  --shadow-panel: 0 1px 3px rgb(28 25 23 / 0.06);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #131211;
-    --surface: #1c1a19;
-    --surface-2: #232120;
-    --canvas: #161514;
-    --canvas-dot: #33302e;
-    --foreground: #e7e5e4;
-    --muted: #a8a29e;
-    --faint: #6b6560;
-    --border: #2b2827;
-    --border-strong: #3a3634;
-    --accent: #818cf8;
-    --accent-strong: #6366f1;
-    --accent-soft: #26264a;
-    --success: #34d399;
-    --success-soft: #0c2b21;
-    --danger: #fb7185;
-    --danger-soft: #35181d;
-    --warning: #fbbf24;
-    --warning-soft: #2e2410;
-    --m-get: #34d399;
-    --m-get-bg: #0c2b21;
-    --m-post: #818cf8;
-    --m-post-bg: #26264a;
-    --m-put: #fbbf24;
-    --m-put-bg: #2e2410;
-    --m-patch: #a78bfa;
-    --m-patch-bg: #29204a;
-    --m-delete: #fb7185;
-    --m-delete-bg: #35181d;
-    --shadow-node: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.3);
-    --shadow-panel: 0 1px 3px rgb(0 0 0 / 0.4);
-  }
+  --shadow-node: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.35);
+  --shadow-panel: 0 1px 3px rgb(0 0 0 / 0.45);
 }
 
 @theme inline {
@@ -90,22 +55,107 @@
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-jakarta);
+  --font-mono: var(--font-jbmono);
   --shadow-node: var(--shadow-node);
   --shadow-panel: var(--shadow-panel);
+}
+
+/* ---- Glassmorphism system ----
+   Three blur intensities; higher layers blur more so top content stays readable.
+   Fills stay ≥60% opaque per WCAG-on-glass guidance; edge-light border is
+   low-opacity white for the dimensional glass look. */
+.glass-light,
+.glass,
+.glass-heavy {
+  background: linear-gradient(
+      165deg,
+      rgb(255 255 255 / 0.06),
+      rgb(255 255 255 / 0.02) 40%,
+      transparent
+    ),
+    color-mix(in srgb, var(--surface) 62%, transparent);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    inset 0 -1px 0 rgb(255 255 255 / 0.03),
+    0 12px 40px rgb(0 0 0 / 0.55);
+}
+/* light: small floating controls (buttons, chips) */
+.glass-light {
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+}
+/* medium: primary panels (sidebar, nav, inspector) */
+.glass {
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+/* heavy: topmost layers (modals, dropdowns) — strongest blur + denser fill */
+.glass-heavy {
+  background: linear-gradient(
+      165deg,
+      rgb(255 255 255 / 0.07),
+      rgb(255 255 255 / 0.02) 40%,
+      transparent
+    ),
+    color-mix(in srgb, var(--surface) 75%, transparent);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  backdrop-filter: blur(28px) saturate(140%);
+}
+
+/* Legibility first: opaque fallback when the user asks for less transparency */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-light,
+  .glass,
+  .glass-heavy {
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* One orchestrated entrance for the workflow wizard: panel rises, cards follow */
+@keyframes wizard-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+.wizard-panel {
+  animation: wizard-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.wizard-card {
+  animation: wizard-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.wizard-card:nth-child(1) {
+  animation-delay: 0.06s;
+}
+.wizard-card:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node-running,
+  .bg-pulse,
+  .wizard-panel,
+  .wizard-card,
+  .react-flow__edge.edge-running .react-flow__edge-path {
+    animation: none;
+  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }
@@ -113,6 +163,13 @@ body {
 /* ---- React Flow theming ---- */
 .react-flow {
   background: var(--canvas);
+  /* @xyflow theming vars — beat the library's own stylesheet without specificity games */
+  --xy-controls-button-background-color: var(--surface);
+  --xy-controls-button-background-color-hover: var(--surface-2);
+  --xy-controls-button-color: var(--muted);
+  --xy-controls-button-color-hover: var(--foreground);
+  --xy-controls-button-border-color: var(--border);
+  --xy-attribution-background-color: transparent;
 }
 .react-flow__edge-path {
   stroke: var(--border-strong);
@@ -145,18 +202,6 @@ body {
 .react-flow__handle.connectionindicator:hover {
   border-color: var(--accent);
 }
-.react-flow__minimap {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.react-flow__minimap-mask {
-  fill: color-mix(in srgb, var(--surface-2) 70%, transparent);
-}
-.react-flow__minimap-node {
-  fill: var(--border-strong);
-}
 .react-flow__controls {
   box-shadow: var(--shadow-panel);
   border: 1px solid var(--border);
@@ -176,6 +221,17 @@ body {
   color: var(--faint);
 }
 
+/* Breathing glow for the auth Dot Field background */
+@keyframes bg-pulse {
+  to {
+    opacity: 0.45;
+    transform: scale(1.12);
+  }
+}
+.bg-pulse {
+  animation: bg-pulse 9s ease-in-out infinite alternate;
+}
+
 @keyframes pulse-ring {
   0%,
   100% {
@@ -188,3 +244,5 @@ body {
 .node-running {
   animation: pulse-ring 1.2s ease-in-out infinite;
 }
+
+/* palette v3 */
