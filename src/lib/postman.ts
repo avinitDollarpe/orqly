@@ -13,10 +13,12 @@ type PmUrl =
       path?: string[] | string;
       query?: PmKV[];
     };
+type PmFormField = PmKV & { type?: string };
 type PmBody = {
   mode?: string;
   raw?: string;
   urlencoded?: PmKV[];
+  formdata?: PmFormField[];
   graphql?: { query?: string; variables?: string };
 };
 type PmRequest =
@@ -80,7 +82,14 @@ function bodyOf(b: PmBody | undefined): string {
     }
     return JSON.stringify({ query: b.graphql.query ?? "", variables: vars }, null, 2);
   }
-  // ponytail: formdata/file bodies unsupported — those requests import without a body. add multipart parsing when a user imports a collection whose requests rely on formdata
+  if (b.mode === "formdata") {
+    // File fields can't be imported (no file to carry); text fields become a JSON object.
+    const obj: Record<string, string> = {};
+    for (const f of b.formdata ?? []) {
+      if (!f.disabled && f.type !== "file" && f.key) obj[f.key] = f.value ?? "";
+    }
+    return Object.keys(obj).length ? JSON.stringify(obj, null, 2) : "";
+  }
   return b.raw ?? "";
 }
 
