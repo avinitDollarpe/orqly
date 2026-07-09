@@ -24,7 +24,7 @@ const ringByStatus: Record<NodeRunStatus, string> = {
   running: "ring-2 ring-accent/45 node-running",
   success: "ring-2 ring-(--success)/40",
   error: "ring-2 ring-(--danger)/40",
-  skipped: "opacity-55",
+  skipped: "opacity-90",
 };
 
 function runMeta(status: NodeRunStatus, run?: NodeRun) {

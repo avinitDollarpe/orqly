@@ -94,36 +94,38 @@ function Row({
           : "text-muted hover:bg-foreground/5 hover:text-foreground"
       }`}
     >
-      {active && (
-        <span className="h-1.5 w-1.5 flex-none rounded-full bg-accent" aria-hidden />
-      )}
+      <span className="flex h-1.5 w-1.5 flex-none items-center justify-center" aria-hidden>
+        {active && <span className="h-1.5 w-1.5 rounded-full bg-accent" />}
+      </span>
       <button
         onClick={onClick}
         className="min-w-0 flex-1 cursor-pointer truncate text-left"
       >
         {name}
       </button>
-      {meta && (
-        <span className="font-mono text-[10px] text-faint group-hover:hidden">
-          {meta}
-        </span>
-      )}
-      <button
-        onClick={onDelete}
-        className="hidden h-5 w-5 flex-none cursor-pointer items-center justify-center rounded text-faint group-hover:flex hover:text-danger"
-        title="Delete"
-        aria-label={`Delete ${name}`}
-      >
-        <svg className="h-2.5 w-2.5" viewBox="0 0 10 10" aria-hidden>
-          <path
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            d="m1.5 1.5 7 7m0-7-7 7"
-          />
-        </svg>
-      </button>
+      <span className="relative flex h-5 w-5 flex-none items-center justify-center">
+        {meta && (
+          <span className="font-mono text-[10px] text-faint group-hover:opacity-0">
+            {meta}
+          </span>
+        )}
+        <button
+          onClick={onDelete}
+          className="absolute inset-0 hidden cursor-pointer items-center justify-center rounded text-faint group-hover:flex hover:text-danger"
+          title="Delete"
+          aria-label={`Delete ${name}`}
+        >
+          <svg className="h-2.5 w-2.5" viewBox="0 0 10 10" aria-hidden>
+            <path
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              d="m1.5 1.5 7 7m0-7-7 7"
+            />
+          </svg>
+        </button>
+      </span>
     </div>
   );
 }
@@ -234,7 +236,7 @@ export function Sidebar() {
         {/* library: reusable pieces referenced by nodes */}
         <div className="mt-4 border-t border-line pb-2">
           <Section
-            title="Bodies"
+            title="Request Bodies"
             count={s.savedBodies.length}
             addLabel="New request body"
             onAdd={() => {
