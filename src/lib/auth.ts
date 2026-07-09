@@ -1,4 +1,4 @@
-import { dash, sendEmail } from "@better-auth/infra";
+import { dash } from "@better-auth/infra";
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -50,34 +50,33 @@ export const auth = betterAuth({
   },
   plugins: [
     emailOTP({
+      // Resend, not Better Auth infra email — that's Pro-plan only ($20/mo);
+      // Resend free tier covers 3k emails/month with a verified domain
       async sendVerificationOTP({ email, otp, type }) {
-        // No Dash key (bare local dev): log the code instead of sending
-        if (!process.env.BETTER_AUTH_API_KEY) {
+        // No RESEND_API_KEY (local dev): log the code instead of sending
+        if (!process.env.RESEND_API_KEY) {
           console.log(`[email-otp] ${type} for ${email}: ${otp}`);
           return;
         }
-        const template =
+        const subject =
           type === "sign-in"
-            ? "sign-in-otp"
-            : type === "forget-password"
-              ? "reset-password-otp"
-              : "verify-email-otp";
-        const result = await sendEmail(
-          {
-            template,
-            to: email,
-            variables: {
-              otpCode: otp,
-              userEmail: email,
-              appName: "Orqly",
-              expirationMinutes: "5",
-            },
+            ? `${otp} is your Orqly sign-in code`
+            : `${otp} is your Orqly verification code`;
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
           },
-          // same cold-start allowance as the dash plugin below
-          { apiTimeout: 15_000 },
-        );
-        if (!result.success) {
-          throw new Error(`OTP email failed: ${result.error}`);
+          body: JSON.stringify({
+            from: process.env.RESEND_FROM ?? "Orqly <onboarding@resend.dev>",
+            to: [email],
+            subject,
+            text: `Your code is ${otp}. It expires in 5 minutes. If you didn't request this, ignore this email.`,
+          }),
+        });
+        if (!res.ok) {
+          throw new Error(`Resend failed (${res.status}): ${await res.text()}`);
         }
       },
     }),
