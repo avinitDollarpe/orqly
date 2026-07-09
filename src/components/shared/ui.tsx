@@ -5,7 +5,7 @@ import { methodHue } from "@/lib/method-colors";
 import type { Method } from "@/lib/types";
 
 /** Method chip colors — explicit hues so they render inside React Flow nodes. */
-export function methodStyle(method: Method): React.CSSProperties {
+function methodStyle(method: Method): React.CSSProperties {
   const { color, background } = methodHue(method);
   return { color, background };
 }
@@ -69,11 +69,6 @@ export function Modal({
 }
 
 export const inputCls = "inspector-field";
-
-export const selectCls = "inspector-field cursor-pointer";
-
-export const btnPrimary =
-  "inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent transition hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50";
 
 export const btnGhost =
   "inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-foreground/5 px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-foreground/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50";

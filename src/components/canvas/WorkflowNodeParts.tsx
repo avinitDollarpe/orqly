@@ -10,7 +10,7 @@ const handleCls =
 
 export { handleCls };
 
-export function NodeTintGradient({ hue, children }: { hue: string; children: ReactNode }) {
+function NodeTintGradient({ hue, children }: { hue: string; children: ReactNode }) {
   return (
     <div
       className="flex items-center gap-1 rounded-full py-1 pr-1 pl-2"
