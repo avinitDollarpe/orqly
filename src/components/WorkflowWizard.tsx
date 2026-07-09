@@ -3,14 +3,23 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { importedEnvVars, type ParsedOpenApi } from "@/lib/openapi";
+import { methodHue } from "@/lib/method-colors";
 import { parseApiFile } from "@/lib/postman";
 import { useStore } from "@/lib/store";
 import { METHODS, type ApiNode } from "@/lib/types";
 
+/** Squash the levels a user picked down to a contiguous 1..k with no gaps. */
+export function normalizeLevels(levels: number[]): Map<number, number> {
+  const used = [...new Set(levels)].sort((a, b) => a - b);
+  return new Map(used.map((lv, i) => [lv, i + 1]));
+}
+
 type Step =
   | { name: "choose" }
   | { name: "upload"; error?: string }
-  | { name: "processing"; fileName: string; parsed: ParsedOpenApi };
+  | { name: "collecting"; fileName: string; parsed: ParsedOpenApi }
+  | { name: "layout"; fileName: string; parsed: ParsedOpenApi }
+  | { name: "placing"; fileName: string; parsed: ParsedOpenApi };
 
 /* Dotted mini-canvas the previews sit on — same texture as the real canvas */
 const dots: React.CSSProperties = {
@@ -175,11 +184,13 @@ function Processing({
   fileName,
   title,
   nodes,
+  stage = "collect",
   onDone,
 }: {
   fileName: string;
   title: string;
   nodes: ApiNode[];
+  stage?: "collect" | "place";
   onDone: () => void;
 }) {
   const [phase, setPhase] = useState(0);
@@ -188,14 +199,24 @@ function Processing({
     (m) => [m, nodes.filter((n) => n.data.method === m).length] as const,
   ).filter(([, c]) => c > 0);
   const bodies = nodes.filter((n) => n.data.bodyMode !== "none").length;
+  const maxLevel = nodes.reduce((m, n) => Math.max(m, n.data.level ?? 1), 1);
 
-  const lines = [
-    `Reading ${fileName}`,
-    `${nodes.length} endpoint${nodes.length === 1 ? "" : "s"} found in "${title}"`,
-    methodCounts.map(([m, c]) => `${m} ${c}`).join(" · "),
-    `${bodies} example ${bodies === 1 ? "body" : "bodies"} prefilled`,
-    `Laying out ${nodes.length + 1} nodes on the canvas`,
-  ];
+  const lines =
+    stage === "collect"
+      ? [
+          `Reading ${fileName}`,
+          `${nodes.length} endpoint${nodes.length === 1 ? "" : "s"} found in "${title}"`,
+          methodCounts.map(([m, c]) => `${m} ${c}`).join(" · "),
+          `${bodies} example ${bodies === 1 ? "body" : "bodies"} prefilled`,
+          `Ready to arrange ${nodes.length} nodes`,
+        ]
+      : [
+          `Placing ${nodes.length} node${nodes.length === 1 ? "" : "s"} on the canvas`,
+          `Wiring ${maxLevel} level${maxLevel === 1 ? "" : "s"} from Start`,
+          `Connecting nodes to their parents`,
+          `Aligning rows and columns`,
+          `Finishing "${title}"`,
+        ];
 
   useEffect(() => {
     if (phase > lines.length) return;
@@ -268,6 +289,169 @@ function Processing({
   );
 }
 
+/** Level-picker: drag each node onto a level row before nodes are built. */
+function LayoutDesigner({
+  parsed,
+  onBack,
+  onContinue,
+}: {
+  parsed: ParsedOpenApi;
+  onBack: () => void;
+  onContinue: (parsed: ParsedOpenApi) => void;
+}) {
+  const [levels, setLevels] = useState<Record<string, number>>(() =>
+    Object.fromEntries(parsed.nodes.map((n, i) => [n.id, n.data.level ?? i + 1])),
+  );
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overLevel, setOverLevel] = useState<number | null>(null);
+  const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
+  const kept = parsed.nodes.filter((n) => !removed.has(n.id));
+  const maxLevel = Math.max(1, ...kept.map((n) => levels[n.id]!));
+
+  const apply = () => {
+    const remap = normalizeLevels(kept.map((n) => levels[n.id]!));
+    onContinue({
+      ...parsed,
+      nodes: kept.map((n) => ({
+        ...n,
+        data: { ...n.data, level: remap.get(levels[n.id]!)!, placement: "below" as const },
+      })),
+    });
+  };
+
+  // trailing row (maxLevel + 1) lets a node be dragged onto a fresh deeper level
+  const rows = Array.from({ length: maxLevel + 1 }, (_, i) => i + 1);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col px-6 pb-6">
+      <div
+        className="min-h-0 flex-1 space-y-1.5 overflow-y-auto rounded-2xl border border-line p-3"
+        style={dots}
+      >
+        {rows.map((lv) => {
+          const inRow = kept.filter((n) => levels[n.id] === lv);
+          const isNew = lv > maxLevel;
+          const over = overLevel === lv;
+          return (
+            <div
+              key={lv}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setOverLevel(lv);
+              }}
+              onDragLeave={() => setOverLevel((o) => (o === lv ? null : o))}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragId) setLevels((l) => ({ ...l, [dragId]: lv }));
+                setDragId(null);
+                setOverLevel(null);
+              }}
+              className={`rounded-xl border border-dashed p-2 transition-colors ${
+                over ? "border-accent/70 bg-accent/5" : "border-transparent"
+              }`}
+            >
+              <p className="px-1 pb-1 font-mono text-[10px] font-bold tracking-[0.14em] text-foreground uppercase">
+                Level {lv}
+                {isNew && (
+                  <span className="font-semibold text-faint"> · drop to add</span>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {inRow.length === 0 && (
+                  <span className="rounded-lg border border-dashed border-white/15 px-3 py-2 font-mono text-[11px] text-faint">
+                    drop a request here
+                  </span>
+                )}
+                {inRow.map((n) => {
+                  const hue = methodHue(n.data.method).color;
+                  return (
+                    <div
+                      key={n.id}
+                      draggable
+                      onDragStart={(e) => {
+                        setDragId(n.id);
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", n.id);
+                      }}
+                      onDragEnd={() => {
+                        setDragId(null);
+                        setOverLevel(null);
+                      }}
+                      className={`flex cursor-grab items-center gap-2 rounded-lg border border-white/10 bg-surface/90 py-1.5 pr-2.5 pl-2 shadow-node transition-opacity active:cursor-grabbing ${
+                        dragId === n.id ? "opacity-40" : ""
+                      }`}
+                    >
+                      <svg
+                        className="h-3.5 w-3.5 flex-none text-faint"
+                        viewBox="0 0 16 16"
+                        aria-hidden
+                      >
+                        <circle cx="6" cy="4" r="1" fill="currentColor" />
+                        <circle cx="10" cy="4" r="1" fill="currentColor" />
+                        <circle cx="6" cy="8" r="1" fill="currentColor" />
+                        <circle cx="10" cy="8" r="1" fill="currentColor" />
+                        <circle cx="6" cy="12" r="1" fill="currentColor" />
+                        <circle cx="10" cy="12" r="1" fill="currentColor" />
+                      </svg>
+                      <span
+                        className="rounded px-1 py-px font-mono text-[9px] font-bold"
+                        style={{
+                          color: hue,
+                          background: `color-mix(in srgb, ${hue} 12%, transparent)`,
+                        }}
+                      >
+                        {n.data.method}
+                      </span>
+                      <span className="max-w-40 truncate text-[12px] text-foreground">
+                        {n.data.label}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRemoved((r) => new Set(r).add(n.id))
+                        }
+                        aria-label={`Remove ${n.data.label}`}
+                        className="-mr-1 flex h-5 w-5 flex-none cursor-pointer items-center justify-center rounded text-faint transition hover:bg-danger/15 hover:text-danger"
+                      >
+                        <svg className="h-2.5 w-2.5" viewBox="0 0 12 12" aria-hidden>
+                          <path
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            d="m2 2 8 8M10 2l-8 8"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onBack}
+          className="cursor-pointer rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition hover:text-foreground"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={apply}
+          disabled={kept.length === 0}
+          className="cursor-pointer rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-on-accent transition hover:opacity-90 disabled:cursor-default disabled:opacity-40"
+        >
+          Build workflow
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function WorkflowWizard({ onClose }: { onClose: () => void }) {
   const createWorkflow = useStore((s) => s.createWorkflow);
   const createWorkflowFromNodes = useStore((s) => s.createWorkflowFromNodes);
@@ -282,7 +466,7 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
   async function onFile(file: File) {
     try {
       const parsed = parseApiFile(JSON.parse(await file.text()));
-      setStep({ name: "processing", fileName: file.name, parsed });
+      setStep({ name: "collecting", fileName: file.name, parsed });
     } catch (e) {
       setStep({
         name: "upload",
@@ -313,19 +497,25 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
     onClose();
   }
 
-  const processing = step.name === "processing";
+  const processing = step.name === "collecting" || step.name === "placing";
   const headline =
     step.name === "choose"
       ? "Create new workflow"
       : step.name === "upload"
         ? "Import API definition"
-        : "Building your workflow";
+        : step.name === "layout"
+          ? "Arrange your nodes"
+          : "Building your workflow";
   const subline =
     step.name === "choose"
       ? "Pick a starting point — you can add, wire and edit nodes either way."
       : step.name === "upload"
         ? "OpenAPI 3, Swagger 2 and Postman collection JSON are supported."
-        : "Gathering endpoints, methods and request bodies from your spec.";
+        : step.name === "layout"
+          ? "Move each request up or down to set which level it sits on."
+          : step.name === "placing"
+            ? "Placing every node in the order you set."
+            : "Gathering endpoints, methods and request bodies from your spec.";
 
   return createPortal(
     <div
@@ -449,11 +639,34 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {step.name === "processing" && (
+        {step.name === "collecting" && (
           <Processing
             fileName={step.fileName}
             title={step.parsed.name}
             nodes={step.parsed.nodes}
+            stage="collect"
+            onDone={() =>
+              setStep({ name: "layout", fileName: step.fileName, parsed: step.parsed })
+            }
+          />
+        )}
+
+        {step.name === "layout" && (
+          <LayoutDesigner
+            parsed={step.parsed}
+            onBack={() => setStep({ name: "upload" })}
+            onContinue={(parsed) =>
+              setStep({ name: "placing", fileName: step.fileName, parsed })
+            }
+          />
+        )}
+
+        {step.name === "placing" && (
+          <Processing
+            fileName={step.fileName}
+            title={step.parsed.name}
+            nodes={step.parsed.nodes}
+            stage="place"
             onDone={() => finishImport(step.parsed)}
           />
         )}
