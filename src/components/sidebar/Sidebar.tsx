@@ -32,7 +32,7 @@ function Section({
       <div className="group/head flex items-center justify-between pr-2 pl-4">
         <button
           onClick={() => setOpen((o) => !o)}
-          className="flex cursor-pointer items-center gap-1.5 py-1 font-mono text-[10px] font-semibold tracking-[0.14em] text-faint uppercase transition hover:text-muted"
+          className="flex cursor-pointer items-center gap-1.5 py-1 font-mono text-[10px] font-bold tracking-[0.14em] text-foreground uppercase transition hover:text-muted"
         >
           <svg
             className={`h-2 w-2 transition-transform ${open ? "rotate-90" : ""}`}
@@ -49,7 +49,7 @@ function Section({
             />
           </svg>
           {title}
-          {count > 0 && <span className="text-faint/70">{count}</span>}
+          {count > 0 && <span className="text-foreground/70">{count}</span>}
         </button>
         <button
           onClick={onAdd}
@@ -199,7 +199,7 @@ export function Sidebar() {
             <button
               type="button"
               onClick={() => setEditing({ kind: "preRequest" })}
-              className="flex w-full cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] text-muted transition hover:bg-foreground/5 hover:text-foreground"
+              className="flex w-full cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-left font-mono text-[10px] font-bold tracking-[0.14em] text-foreground uppercase transition hover:bg-foreground/5 hover:text-muted"
             >
               <span>Pre-request script</span>
               <span className="font-mono text-[10px] text-faint">

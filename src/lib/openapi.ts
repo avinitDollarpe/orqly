@@ -1,4 +1,4 @@
-import type { ApiNode, Method, SavedBody } from "@/lib/types";
+import type { ApiNode, KV, Method, SavedBody } from "@/lib/types";
 import { METHODS } from "@/lib/types";
 
 /** Minimal shapes we read from an OpenAPI 3 / Swagger 2 JSON document. */
@@ -144,7 +144,25 @@ export type ParsedOpenApi = {
   nodes: ApiNode[];
   /** One library body per operation with a request body; nodes reference these. */
   bodies: SavedBody[];
+  /** Extra environment variables (Postman collection variables). */
+  vars?: KV[];
 };
+
+/**
+ * Environment vars after an import: existing vars plus BASE_URL and any
+ * collection variables, incoming values winning. Null when nothing to add.
+ */
+export function importedEnvVars(existing: KV[], parsed: ParsedOpenApi): KV[] | null {
+  const incoming: KV[] = [
+    ...(parsed.baseUrl
+      ? [{ key: "BASE_URL", value: parsed.baseUrl, enabled: true }]
+      : []),
+    ...(parsed.vars ?? []),
+  ];
+  if (incoming.length === 0) return null;
+  const keys = new Set(incoming.map((v) => v.key));
+  return [...existing.filter((v) => !keys.has(v.key)), ...incoming];
+}
 
 /**
  * Parse an OpenAPI/Swagger JSON document into request nodes, one per

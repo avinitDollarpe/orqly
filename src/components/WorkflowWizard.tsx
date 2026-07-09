@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { parseOpenApi, type ParsedOpenApi } from "@/lib/openapi";
+import { importedEnvVars, type ParsedOpenApi } from "@/lib/openapi";
+import { parseApiFile } from "@/lib/postman";
 import { useStore } from "@/lib/store";
 import { METHODS, type ApiNode } from "@/lib/types";
 
@@ -280,7 +281,7 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
 
   async function onFile(file: File) {
     try {
-      const parsed = parseOpenApi(JSON.parse(await file.text()));
+      const parsed = parseApiFile(JSON.parse(await file.text()));
       setStep({ name: "processing", fileName: file.name, parsed });
     } catch (e) {
       setStep({
@@ -293,12 +294,9 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
   /** Library bodies + BASE_URL land in the store before the workflow is created. */
   function finishImport(parsed: ParsedOpenApi) {
     for (const body of parsed.bodies) upsertBody(body);
-    if (parsed.baseUrl) {
-      const env = environments.find((e) => e.id === activeEnvId);
-      const vars = [
-        ...(env?.vars.filter((v) => v.key !== "BASE_URL") ?? []),
-        { key: "BASE_URL", value: parsed.baseUrl, enabled: true },
-      ];
+    const env = environments.find((e) => e.id === activeEnvId);
+    const vars = importedEnvVars(env?.vars ?? [], parsed);
+    if (vars) {
       // upsertEnvironment activates the new env when none is active yet
       upsertEnvironment(
         env
@@ -320,13 +318,13 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
     step.name === "choose"
       ? "Create new workflow"
       : step.name === "upload"
-        ? "Import OpenAPI spec"
+        ? "Import API definition"
         : "Building your workflow";
   const subline =
     step.name === "choose"
       ? "Pick a starting point — you can add, wire and edit nodes either way."
       : step.name === "upload"
-        ? "OpenAPI 3 and Swagger 2 JSON documents are supported."
+        ? "OpenAPI 3, Swagger 2 and Postman collection JSON are supported."
         : "Gathering endpoints, methods and request bodies from your spec.";
 
   return createPortal(
@@ -387,9 +385,9 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
             <ActionCard
               onActivate={() => setStep({ name: "upload" })}
               preview={<ImportPreview />}
-              title="Import OpenAPI.json"
-              description="Every endpoint in your spec becomes a request node — URL, method and example body prefilled."
-              meta="OpenAPI 3 · Swagger 2"
+              title="Import spec or collection"
+              description="Every endpoint becomes a request node — URL, method, headers and body prefilled."
+              meta="OpenAPI 3 · Swagger 2 · Postman"
               onDropFile={onFile}
             />
             <ActionCard

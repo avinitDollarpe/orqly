@@ -87,7 +87,7 @@ export function TopBar({
   return (
     <header className="pointer-events-none absolute top-3 right-3 left-3 z-50 flex nav-row items-center gap-2">
       <div className="pointer-events-auto flex min-w-0 items-center gap-2">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent font-mono text-sm font-bold text-on-accent">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent font-mono text-[19px] leading-none font-bold text-on-accent">
           ⌘
         </span>
         <span className="text-sm font-semibold leading-none tracking-tight">Orqly</span>
@@ -160,23 +160,27 @@ export function TopBar({
                         setActiveEnv(env.id);
                         setEnvOpen(false);
                       }}
-                      className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left font-mono text-[10px] font-semibold tracking-[0.08em] text-foreground uppercase transition hover:bg-foreground/8"
+                      className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition hover:bg-foreground/8 ${
+                        selected ? "text-foreground" : "text-muted hover:text-foreground"
+                      }`}
                     >
-                      <span className="flex h-3.5 w-3.5 flex-none items-center justify-center">
-                        {selected && (
-                          <svg className="h-3 w-3" viewBox="0 0 12 12" aria-hidden>
-                            <path
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.6"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M2.5 6.2 5 8.7 9.5 3.8"
-                            />
-                          </svg>
-                        )}
-                      </span>
-                      {env.name}
+                      <span className="truncate">{env.name}</span>
+                      {selected && (
+                        <svg
+                          className="h-3 w-3 flex-none text-accent"
+                          viewBox="0 0 12 12"
+                          aria-hidden
+                        >
+                          <path
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M2.5 6.2 5 8.7 9.5 3.8"
+                          />
+                        </svg>
+                      )}
                     </button>
                   </li>
                 );

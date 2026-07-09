@@ -70,6 +70,8 @@ type Store = {
     /** @deprecated use anchorNodeId */
     afterNodeId?: string;
     placement?: NodePlacement;
+    /** Prefill (imports): method, url, headers, body, label. */
+    data?: Partial<ApiNodeData>;
   }) => string;
   updateNodeData: (nodeId: string, patch: Partial<ApiNodeData>) => void;
 
@@ -420,14 +422,15 @@ export const useStore = create<Store>((set, get) => {
           type: "api",
           position: { x: 0, y: 0 },
           data: {
-            label: uniqueLabel("Request", taken),
-            level,
-            placement,
             method: "GET",
             url: "",
             headers: [],
             bodyMode: "none",
             inlineBody: "",
+            ...opts?.data,
+            label: uniqueLabel(opts?.data?.label || "Request", taken),
+            level,
+            placement,
           },
         };
 
