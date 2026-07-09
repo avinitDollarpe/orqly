@@ -6,7 +6,7 @@ export const NODE_W = 280;
 export const NODE_H = 125;
 
 const handleCls =
-  "!size-px !min-h-px !min-w-px !opacity-0 !border-0 !bg-transparent";
+  "!size-3 !rounded-full !border-2 !border-accent !bg-canvas !opacity-40 !transition-opacity hover:!opacity-100 group-hover:!opacity-100";
 
 export { handleCls };
 

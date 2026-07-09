@@ -60,7 +60,7 @@ export const ApiNode = memo(function ApiNode({
   const meta = runMeta(status, run);
 
   return (
-    <div className="relative">
+    <div className="group relative">
       <NodeShell selected={selected} statusClass={ringByStatus[status]}>
         <Handle type="target" position={Position.Top} className={handleCls} />
 

@@ -20,7 +20,7 @@ export const StartNode = memo(function StartNode({
   selected,
 }: NodeProps<StartNodeType>) {
   return (
-    <div className="relative">
+    <div className="group relative">
       <NodeShell selected={selected}>
         <NodeTitleRow
           hue={success}

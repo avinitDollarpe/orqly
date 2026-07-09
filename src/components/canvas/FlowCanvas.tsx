@@ -3,6 +3,7 @@
 import {
   Background,
   BackgroundVariant,
+  ConnectionMode,
   ReactFlow,
   useReactFlow,
   type Edge,
@@ -90,6 +91,8 @@ export function FlowCanvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        connectionMode={ConnectionMode.Loose}
+        connectionRadius={40}
         onNodeDragStart={onNodeDragStart}
         onNodeClick={(_, node) => selectNode(node.id)}
         onPaneClick={() => selectNode(null)}

@@ -376,20 +376,41 @@ export const useStore = create<Store>((set, get) => {
     },
 
     onConnect: (conn) => {
+      const { workflows, activeWorkflowId } = get();
+      const wf = workflows.find((w) => w.id === activeWorkflowId);
+      const { source, target } = conn;
+      if (!wf || !source || !target || source === target) return;
+      // Start is entry-only — it can never become a child.
+      if (wf.nodes.find((n) => n.id === target)?.type === "start") return;
+      // Reject if target is already an ancestor of source (would form a cycle).
+      for (let cur: string | undefined = source; cur; ) {
+        const up: string | undefined = wf.edges.find((e) => e.target === cur)?.source;
+        if (up === target) return;
+        cur = up === cur ? undefined : up;
+      }
+
       commitGraphHistory();
-      patchActive((wf) => ({
-        edges: [
-          ...wf.edges.filter(
-            (e) => !(e.source === conn.source && e.target === conn.target),
-          ),
-          {
-            id: uid(),
-            source: conn.source,
-            target: conn.target,
-            type: "smoothstep",
-          } satisfies Edge,
-        ],
-      }));
+      // Manual connect wins: target becomes the source's child (one parent),
+      // dropped one row below it, then the graph re-lays out from levels.
+      patchActive((w) => {
+        const srcLevel = levelOfNode(w, source);
+        const nodes =
+          srcLevel == null
+            ? w.nodes
+            : w.nodes.map((n) =>
+                n.id === target && n.type === "api"
+                  ? {
+                      ...n,
+                      data: { ...n.data, level: srcLevel + 1, placement: "below" as const },
+                    }
+                  : n,
+              );
+        const edges: Edge[] = [
+          ...w.edges.filter((e) => e.target !== target),
+          { id: uid(), source, target, type: "smoothstep" },
+        ];
+        return autoLayout({ ...w, nodes, edges });
+      });
     },
 
     onNodeDragStart: () => commitGraphHistory(),
