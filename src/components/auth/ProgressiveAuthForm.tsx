@@ -203,10 +203,10 @@ export function ProgressiveAuthForm({
     }
   }
 
-  async function verifyOtp() {
+  async function verifyOtp(code = otp) {
     setBusy(true);
     setError(null);
-    const res = await authClient.signIn.emailOtp({ email, otp });
+    const res = await authClient.signIn.emailOtp({ email, otp: code });
     setBusy(false);
     if (res.error) {
       setError(res.error.message ?? "Invalid code");
@@ -215,12 +215,6 @@ export function ProgressiveAuthForm({
       router.refresh();
     }
   }
-
-  // auto-verify the moment the 6th digit lands
-  useEffect(() => {
-    if (otp.length === 6 && !busy) void verifyOtp();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire on otp completion only
-  }, [otp]);
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-6">
@@ -371,7 +365,14 @@ export function ProgressiveAuthForm({
                 Enter the 6 digit code we sent to{" "}
                 <b className="font-medium text-foreground">{email}</b>
               </p>
-              <OtpInputs value={otp} onChange={setOtp} />
+              <OtpInputs
+                value={otp}
+                onChange={(next) => {
+                  setOtp(next);
+                  // auto-verify the moment the 6th digit lands
+                  if (next.length === 6 && !busy) void verifyOtp(next);
+                }}
+              />
               {error && <p className="mb-2.5 text-sm text-danger">{error}</p>}
               <button
                 type="button"
