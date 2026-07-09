@@ -18,6 +18,16 @@ export const auth = betterAuth({
   // ngrok tunnel (for OAuth callbacks); trust both so neither trips the
   // origin check
   trustedOrigins: ["http://localhost:3000"],
+  // DB-backed so limits hold across serverless instances; memory storage is
+  // per-lambda on Vercel. The OTP verify endpoint keeps the emailOTP
+  // plugin's own 3-per-minute rule.
+  rateLimit: {
+    enabled: true,
+    storage: "database",
+    customRules: {
+      "/email-otp/send-verification-otp": { window: 300, max: 3 },
+    },
+  },
   // One user per email regardless of sign-in method: first visit creates the
   // user, later visits with any method log into the same account. Google and
   // GitHub verify emails, so linking on their say-so is safe;

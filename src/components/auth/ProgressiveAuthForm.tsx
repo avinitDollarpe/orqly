@@ -21,6 +21,15 @@ const textlink =
   "mt-3.5 block w-full cursor-pointer text-center text-[12.5px] text-muted";
 const providerRow = "flex w-[166px] items-center gap-2 text-left";
 
+function Spinner() {
+  return (
+    <span
+      className="h-3.5 w-3.5 flex-none animate-spin rounded-full border-[1.5px] border-current border-t-transparent"
+      aria-hidden
+    />
+  );
+}
+
 function GitHubIcon() {
   return (
     <svg className="h-4 w-4 flex-none" viewBox="0 0 16 16" aria-hidden>
@@ -142,6 +151,17 @@ export function ProgressiveAuthForm({
   const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [redirecting, setRedirecting] = useState<"github" | "google" | null>(
+    null,
+  );
+
+  // back-button from the OAuth page restores this page from bfcache with
+  // state intact — clear the spinner so the buttons aren't stuck disabled
+  useEffect(() => {
+    const reset = () => setRedirecting(null);
+    window.addEventListener("pageshow", reset);
+    return () => window.removeEventListener("pageshow", reset);
+  }, []);
 
   useEffect(() => {
     if (step !== "passkey") return;
@@ -196,6 +216,12 @@ export function ProgressiveAuthForm({
     }
   }
 
+  // auto-verify the moment the 6th digit lands
+  useEffect(() => {
+    if (otp.length === 6 && !busy) void verifyOtp();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire on otp completion only
+  }, [otp]);
+
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-6">
       <div
@@ -217,6 +243,8 @@ export function ProgressiveAuthForm({
         </div>
 
         <div className="glass rounded-2xl p-6 leading-[normal]">
+          {/* key remount replays the step-in animation on every screen change */}
+          <div key={step} className="auth-step">
           {step === "signin" && (
             <>
               <h1 className="mb-1 text-[16px] font-bold leading-[18px]">Welcome to Orqly</h1>
@@ -225,31 +253,49 @@ export function ProgressiveAuthForm({
                 {githubEnabled && (
                   <button
                     type="button"
-                    onClick={() =>
-                      authClient.signIn.social({ provider: "github" })
-                    }
+                    disabled={!!redirecting}
+                    onClick={() => {
+                      setRedirecting("github");
+                      void authClient.signIn.social({ provider: "github" });
+                    }}
                     className={btnGitHub}
                   >
-                    {/* Fixed-width inner row: icon column and label start at the
-                        same x across all three buttons despite label widths */}
-                    <span className={providerRow}>
-                      <GitHubIcon />
-                      Continue with GitHub
-                    </span>
+                    {redirecting === "github" ? (
+                      <>
+                        <Spinner />
+                        Redirecting…
+                      </>
+                    ) : (
+                      /* Fixed-width inner row: icon column and label start at the
+                         same x across all three buttons despite label widths */
+                      <span className={providerRow}>
+                        <GitHubIcon />
+                        Continue with GitHub
+                      </span>
+                    )}
                   </button>
                 )}
                 {googleEnabled && (
                   <button
                     type="button"
-                    onClick={() =>
-                      authClient.signIn.social({ provider: "google" })
-                    }
+                    disabled={!!redirecting}
+                    onClick={() => {
+                      setRedirecting("google");
+                      void authClient.signIn.social({ provider: "google" });
+                    }}
                     className={btnGhost}
                   >
-                    <span className={providerRow}>
-                      <GoogleIcon />
-                      Continue with Google
-                    </span>
+                    {redirecting === "google" ? (
+                      <>
+                        <Spinner />
+                        Redirecting…
+                      </>
+                    ) : (
+                      <span className={providerRow}>
+                        <GoogleIcon />
+                        Continue with Google
+                      </span>
+                    )}
                   </button>
                 )}
                 <button
@@ -274,8 +320,8 @@ export function ProgressiveAuthForm({
                 }}
                 className={textlink}
               >
-                Have a passkey?{" "}
-                <b className="font-medium text-accent">Use it instead</b>
+                Have a passkey?
+                <b className="ml-2 font-medium text-accent">Use it instead</b>
               </button>
             </>
           )}
@@ -302,6 +348,7 @@ export function ProgressiveAuthForm({
                 onClick={() => void sendCode()}
                 className={btnPrimary}
               >
+                {busy && <Spinner />}
                 {busy ? "Sending…" : "Send code"}
               </button>
               <button
@@ -332,6 +379,7 @@ export function ProgressiveAuthForm({
                 onClick={() => void verifyOtp()}
                 className={btnPrimary}
               >
+                {busy && <Spinner />}
                 {busy ? "Verifying…" : "Verify"}
               </button>
               <p className={textlink}>
@@ -390,6 +438,7 @@ export function ProgressiveAuthForm({
               </button>
             </>
           )}
+          </div>
         </div>
       </div>
     </main>

@@ -199,6 +199,23 @@ body {
   transition: color 0.15s ease-out, background-color 0.15s ease-out;
 }
 
+/* Auth card: each step fades/rises in when the screen changes */
+@keyframes auth-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.auth-step {
+  animation: auth-step-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-step {
+    animation: none;
+  }
+}
+
 @keyframes confirm-in {
   from {
     opacity: 0;
