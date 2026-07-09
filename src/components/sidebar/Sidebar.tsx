@@ -196,16 +196,34 @@ export function Sidebar() {
 
         {activeWorkflow && (
           <div className="mt-2 border-t border-line px-2 pt-2">
-            <button
-              type="button"
-              onClick={() => setEditing({ kind: "preRequest" })}
-              className="flex w-full cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-left font-mono text-[10px] font-bold tracking-[0.14em] text-foreground uppercase transition hover:bg-foreground/5 hover:text-muted"
-            >
-              <span>Pre-request script</span>
-              <span className="font-mono text-[10px] text-faint">
-                {activeWorkflow.preRequestScript?.trim() ? "On" : "Off"}
-              </span>
-            </button>
+            <div className="flex items-center justify-between rounded-lg pr-2.5 transition hover:bg-foreground/5">
+              <button
+                type="button"
+                onClick={() => setEditing({ kind: "preRequest" })}
+                className="min-w-0 flex-1 cursor-pointer px-2.5 py-2 text-left font-mono text-[10px] font-bold tracking-[0.14em] text-foreground uppercase transition hover:text-muted"
+              >
+                Pre-request script
+              </button>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={activeWorkflow.preRequestEnabled !== false}
+                aria-label="Run pre-request script"
+                onClick={() =>
+                  s.setWorkflowPreRequestEnabled(
+                    activeWorkflow.id,
+                    activeWorkflow.preRequestEnabled === false,
+                  )
+                }
+                className={`flex h-4 w-8 flex-none cursor-pointer items-center px-[1.6px] transition-colors ${
+                  activeWorkflow.preRequestEnabled !== false
+                    ? "justify-end bg-accent"
+                    : "justify-start bg-foreground/25"
+                }`}
+              >
+                <span className="block h-[12.8px] w-[12.8px] bg-[#F8F8F7]" />
+              </button>
+            </div>
             <p className="px-2.5 pt-1 text-[11px] leading-snug text-faint">
               Runs before each API in this workflow. Use env vars like{" "}
               <code className="font-mono">API_KEY</code>.

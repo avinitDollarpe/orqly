@@ -81,6 +81,7 @@ type Store = {
   createWorkflowFromNodes: (name: string, nodes: ApiNode[], edges: Edge[]) => void;
   renameWorkflow: (id: string, name: string) => void;
   setWorkflowPreRequestScript: (id: string, script: string) => void;
+  setWorkflowPreRequestEnabled: (id: string, enabled: boolean) => void;
   deleteWorkflow: (id: string) => void;
   setActiveWorkflow: (id: string) => void;
   importBundle: (bundle: WorkflowBundle) => void;
@@ -230,6 +231,7 @@ function workflowPayload(wf: Workflow | undefined) {
     nodes: wf.nodes,
     edges: wf.edges,
     preRequestScript: wf.preRequestScript ?? "",
+    preRequestEnabled: wf.preRequestEnabled ?? true,
   };
 }
 
@@ -556,6 +558,15 @@ export const useStore = create<Store>((set, get) => {
       set((s) => ({
         workflows: s.workflows.map((w) =>
           w.id === id ? { ...w, preRequestScript: script } : w,
+        ),
+      }));
+      scheduleSave("workflows", id, () => workflowPayload(get().workflows.find((w) => w.id === id)));
+    },
+
+    setWorkflowPreRequestEnabled: (id, enabled) => {
+      set((s) => ({
+        workflows: s.workflows.map((w) =>
+          w.id === id ? { ...w, preRequestEnabled: enabled } : w,
         ),
       }));
       scheduleSave("workflows", id, () => workflowPayload(get().workflows.find((w) => w.id === id)));

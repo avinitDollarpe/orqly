@@ -1,4 +1,4 @@
-import { jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
 
 export * from "./auth-schema";
@@ -20,6 +20,7 @@ export const workflows = pgTable("workflows", {
   nodes: jsonb("nodes").notNull().default([]),
   edges: jsonb("edges").notNull().default([]),
   preRequestScript: text("pre_request_script").notNull().default(""),
+  preRequestEnabled: boolean("pre_request_enabled").notNull().default(true),
   ...timestamps,
 });
 

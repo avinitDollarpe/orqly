@@ -196,7 +196,11 @@ export async function runWorkflow(wf: Workflow) {
       if (inEdge) useStore.getState().setRunningEdge(inEdge.id);
 
       const ctx = { env, nodes: buildNodeContext(wf) };
-      const { ok } = await executeNode(node, ctx, wf.preRequestScript);
+      const { ok } = await executeNode(
+        node,
+        ctx,
+        wf.preRequestEnabled === false ? undefined : wf.preRequestScript,
+      );
 
       useStore.getState().setRunningEdge(null);
       if (ok) {
@@ -222,7 +226,7 @@ export async function runSingleNode(wf: Workflow, nodeId: string) {
     await executeNode(
       node,
       { env: buildEnv(), nodes: buildNodeContext(wf) },
-      wf.preRequestScript,
+      wf.preRequestEnabled === false ? undefined : wf.preRequestScript,
     );
   } finally {
     useStore.getState().setIsRunning(false);

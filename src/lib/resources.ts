@@ -4,7 +4,7 @@ import { environments, headerSets, savedBodies, workflows } from "@/db/schema";
 export const RESOURCES = {
   workflows: {
     table: workflows,
-    keys: ["name", "nodes", "edges", "preRequestScript"],
+    keys: ["name", "nodes", "edges", "preRequestScript", "preRequestEnabled"],
   },
   bodies: { table: savedBodies, keys: ["name", "json"] },
   "header-sets": { table: headerSets, keys: ["name", "headers"] },

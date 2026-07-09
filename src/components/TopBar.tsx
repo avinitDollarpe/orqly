@@ -7,7 +7,11 @@ import { runWorkflow } from "@/lib/runner";
 import { useActiveWorkflow, useStore } from "@/lib/store";
 
 const timeOf = (ms: number) =>
-  new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  new Date(ms).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 
 function MetaItem({
   label,
@@ -27,7 +31,7 @@ function MetaItem({
   const detail = [value, label].filter(Boolean).join(" ");
 
   return (
-    <span className="nav-row inline-flex shrink-0 items-center gap-2 font-mono text-xs font-semibold tracking-[0.08em] uppercase">
+    <span className="nav-row inline-flex shrink-0 items-center gap-2 font-mono text-xs font-bold tracking-[0.08em] uppercase">
       {chip && <span className={chipTone}>{chip.text}</span>}
       {detail && <span className="text-muted">{detail}</span>}
     </span>
