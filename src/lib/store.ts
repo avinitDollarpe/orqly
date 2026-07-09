@@ -18,8 +18,10 @@ import type {
   HeaderSet,
   NodeRun,
   SavedBody,
+  StartNode,
   Workflow,
   WorkflowBundle,
+  WorkflowNode,
 } from "@/lib/types";
 
 export type SaveState = "idle" | "saving" | "saved" | "error";
@@ -36,6 +38,13 @@ type Store = {
   activeEnvId: string | null;
   selectedNodeId: string | null;
   saveState: SaveState;
+  /** Epoch ms of the last successful save — drives "Updated …" in the nav. */
+  lastSavedAt: number | null;
+  /** "Create new workflow" chooser; opens on load and from the sidebar. */
+  wizardOpen: boolean;
+  setWizardOpen: (open: boolean) => void;
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
 
   // ephemeral run state
   isRunning: boolean;
@@ -46,7 +55,7 @@ type Store = {
   hydrate: () => Promise<void>;
 
   // graph ops on the active workflow
-  onNodesChange: (changes: NodeChange<ApiNode>[]) => void;
+  onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (conn: Connection) => void;
   addNode: (position?: XYPosition) => string;
@@ -54,6 +63,8 @@ type Store = {
 
   // workflows
   createWorkflow: () => void;
+  /** Create a workflow pre-populated with imported API nodes (OpenAPI). */
+  createWorkflowFromNodes: (name: string, nodes: ApiNode[], edges: Edge[]) => void;
   renameWorkflow: (id: string, name: string) => void;
   deleteWorkflow: (id: string) => void;
   setActiveWorkflow: (id: string) => void;
@@ -89,7 +100,9 @@ function trackSave(promise: Promise<Response>) {
   promise
     .then((res) => {
       if (!res.ok) throw new Error(String(res.status));
-      if (--pendingSaves === 0) useStore.setState({ saveState: "saved" });
+      if (--pendingSaves === 0) {
+        useStore.setState({ saveState: "saved", lastSavedAt: Date.now() });
+      }
     })
     .catch(() => {
       pendingSaves = Math.max(0, pendingSaves - 1);
@@ -141,6 +154,50 @@ const uniqueLabel = (base: string, taken: Set<string>) => {
   return label;
 };
 
+export const makeStartNode = (position?: XYPosition): StartNode => ({
+  id: uid(),
+  type: "start",
+  position: position ?? { x: 80, y: 40 },
+  deletable: false,
+  data: { label: "Start" },
+});
+
+/** Every workflow gets exactly one Start node; older ones are patched on load. */
+function ensureStartNode(wf: Workflow): Workflow {
+  if (wf.nodes.some((n) => n.type === "start")) return wf;
+  const topmost = wf.nodes.reduce(
+    (min, n) => Math.min(min, n.position.y),
+    Number.POSITIVE_INFINITY,
+  );
+  const leftmost = wf.nodes.reduce(
+    (min, n) => Math.min(min, n.position.x),
+    Number.POSITIVE_INFINITY,
+  );
+  const start = makeStartNode(
+    wf.nodes.length
+      ? { x: leftmost, y: topmost - 180 }
+      : undefined,
+  );
+  const firstRoot = wf.nodes.find(
+    (n) => !wf.edges.some((e) => e.target === n.id),
+  );
+  return {
+    ...wf,
+    nodes: [start, ...wf.nodes],
+    edges: firstRoot
+      ? [
+          {
+            id: uid(),
+            source: start.id,
+            target: firstRoot.id,
+            type: "smoothstep",
+          },
+          ...wf.edges,
+        ]
+      : wf.edges,
+  };
+}
+
 /* ---------- store ---------- */
 
 export const useStore = create<Store>((set, get) => {
@@ -167,6 +224,11 @@ export const useStore = create<Store>((set, get) => {
     activeEnvId: null,
     selectedNodeId: null,
     saveState: "idle",
+    lastSavedAt: null,
+    wizardOpen: false,
+    setWizardOpen: (open) => set({ wizardOpen: open }),
+    sidebarOpen: true,
+    setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
     isRunning: false,
     runs: {},
@@ -183,7 +245,8 @@ export const useStore = create<Store>((set, get) => {
           ),
         )) as [Workflow[], SavedBody[], HeaderSet[], Environment[]];
 
-      if (workflows.length === 0) {
+      const firstTime = workflows.length === 0;
+      if (firstTime) {
         const demo = seedDemo();
         workflows.push(demo.workflow);
         savedBodies.push(...demo.savedBodies);
@@ -198,12 +261,13 @@ export const useStore = create<Store>((set, get) => {
 
       set({
         hydrated: true,
-        workflows,
+        workflows: workflows.map(ensureStartNode),
         savedBodies,
         headerSets,
         environments,
         activeWorkflowId: workflows[0]?.id ?? null,
         activeEnvId: environments[0]?.id ?? null,
+        wizardOpen: firstTime,
       });
     },
 
@@ -264,13 +328,49 @@ export const useStore = create<Store>((set, get) => {
         }
         return {
           nodes: wf.nodes.map((n) =>
-            n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n,
+            n.id === nodeId && n.type === "api"
+              ? { ...n, data: { ...n.data, ...patch } }
+              : n,
           ),
         };
       }),
 
     createWorkflow: () => {
-      const wf: Workflow = { id: uid(), name: "New workflow", nodes: [], edges: [] };
+      const wf: Workflow = {
+        id: uid(),
+        name: "New workflow",
+        nodes: [makeStartNode()],
+        edges: [],
+      };
+      set((s) => ({
+        workflows: [...s.workflows, wf],
+        activeWorkflowId: wf.id,
+        selectedNodeId: null,
+        runs: {},
+        doneEdgeIds: [],
+        runningEdgeId: null,
+      }));
+      put("workflows", wf.id, wf);
+    },
+
+    createWorkflowFromNodes: (name, nodes, edges) => {
+      const start = makeStartNode({ x: nodes[0]?.position.x ?? 80, y: 40 });
+      const wf: Workflow = {
+        id: uid(),
+        name,
+        nodes: [start, ...nodes],
+        edges: nodes.length
+          ? [
+              {
+                id: uid(),
+                source: start.id,
+                target: nodes[0].id,
+                type: "smoothstep",
+              },
+              ...edges,
+            ]
+          : edges,
+      };
       set((s) => ({
         workflows: [...s.workflows, wf],
         activeWorkflowId: wf.id,
@@ -319,7 +419,7 @@ export const useStore = create<Store>((set, get) => {
     importBundle: (bundle) => {
       const { workflows, savedBodies, headerSets } = get();
       // re-id the workflow to avoid clobbering an existing one
-      const wf: Workflow = { ...bundle.workflow, id: uid() };
+      const wf: Workflow = ensureStartNode({ ...bundle.workflow, id: uid() });
       const existingNames = new Set(workflows.map((w) => w.name));
       wf.name = uniqueLabel(wf.name, existingNames);
 

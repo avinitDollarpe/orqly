@@ -6,6 +6,7 @@ import { FlowCanvas } from "@/components/canvas/FlowCanvas";
 import { Inspector } from "@/components/inspector/Inspector";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { TopBar } from "@/components/TopBar";
+import { WorkflowWizard } from "@/components/WorkflowWizard";
 import { useStore } from "@/lib/store";
 
 export function Builder({
@@ -18,6 +19,8 @@ export function Builder({
   const hydrated = useStore((s) => s.hydrated);
   const hydrate = useStore((s) => s.hydrate);
   const selectedNodeId = useStore((s) => s.selectedNodeId);
+  const wizardOpen = useStore((s) => s.wizardOpen);
+  const setWizardOpen = useStore((s) => s.setWizardOpen);
 
   useEffect(() => {
     if (!hydrated) void hydrate();
@@ -33,15 +36,12 @@ export function Builder({
 
   return (
     <ReactFlowProvider>
-      <div className="flex h-screen overflow-hidden bg-background">
+      <div className="relative h-screen overflow-hidden bg-background">
+        <FlowCanvas />
         <Sidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar userName={userName} userEmail={userEmail} />
-          <div className="flex min-h-0 flex-1">
-            <FlowCanvas />
-            {selectedNodeId && <Inspector key={selectedNodeId} />}
-          </div>
-        </div>
+        <TopBar userName={userName} userEmail={userEmail} />
+        {selectedNodeId && <Inspector key={selectedNodeId} />}
+        {wizardOpen && <WorkflowWizard onClose={() => setWizardOpen(false)} />}
       </div>
     </ReactFlowProvider>
   );

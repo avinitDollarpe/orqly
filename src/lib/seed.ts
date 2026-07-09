@@ -55,7 +55,7 @@ export function seedDemo(): {
     {
       ...base,
       id: uid(),
-      position: { x: 60, y: 140 },
+      position: { x: 80, y: 260 },
       data: {
         label: "Create Customer",
         method: "POST",
@@ -70,7 +70,7 @@ export function seedDemo(): {
     {
       ...base,
       id: uid(),
-      position: { x: 380, y: 60 },
+      position: { x: 80, y: 470 },
       data: {
         label: "Share KYC",
         method: "POST",
@@ -92,7 +92,7 @@ export function seedDemo(): {
     {
       ...base,
       id: uid(),
-      position: { x: 700, y: 140 },
+      position: { x: 80, y: 680 },
       data: {
         label: "Create Payout",
         method: "POST",

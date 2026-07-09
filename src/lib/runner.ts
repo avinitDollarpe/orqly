@@ -13,10 +13,14 @@ import type {
   KV,
   ResolvedRequest,
   Workflow,
+  WorkflowNode,
 } from "@/lib/types";
 
 /** Kahn topological order; nodes in cycles are returned separately. */
-function topoOrder(wf: Workflow): { order: ApiNode[]; cyclic: ApiNode[] } {
+function topoOrder(wf: Workflow): {
+  order: WorkflowNode[];
+  cyclic: WorkflowNode[];
+} {
   const indegree = new Map(wf.nodes.map((n) => [n.id, 0]));
   for (const e of wf.edges) {
     if (indegree.has(e.target) && indegree.has(e.source)) {
@@ -24,7 +28,7 @@ function topoOrder(wf: Workflow): { order: ApiNode[]; cyclic: ApiNode[] } {
     }
   }
   const queue = wf.nodes.filter((n) => indegree.get(n.id) === 0);
-  const order: ApiNode[] = [];
+  const order: WorkflowNode[] = [];
   while (queue.length) {
     const node = queue.shift()!;
     order.push(node);
@@ -55,6 +59,7 @@ function buildNodeContext(wf: Workflow): InterpolationContext["nodes"] {
   const { runs } = useStore.getState();
   const ctx: InterpolationContext["nodes"] = {};
   for (const node of wf.nodes) {
+    if (node.type !== "api") continue;
     const run = runs[node.id];
     if (run?.response) ctx[node.data.label] = { response: run.response };
   }
@@ -160,6 +165,13 @@ export async function runWorkflow(wf: Workflow) {
 
     const failed = new Set(cyclic.map((n) => n.id));
     for (const node of order) {
+      if (node.type === "start") {
+        // Start executes nothing; its outgoing edges light up immediately
+        wf.edges
+          .filter((e) => e.source === node.id)
+          .forEach((e) => useStore.getState().addDoneEdge(e.id));
+        continue;
+      }
       const incoming = wf.edges.filter((e) => e.target === node.id);
       if (incoming.some((e) => failed.has(e.source))) {
         failed.add(node.id);
@@ -191,7 +203,7 @@ export async function runSingleNode(wf: Workflow, nodeId: string) {
   const store = useStore.getState();
   if (store.isRunning) return;
   const node = wf.nodes.find((n) => n.id === nodeId);
-  if (!node) return;
+  if (!node || node.type !== "api") return;
   store.setIsRunning(true);
   try {
     await executeNode(node, { env: buildEnv(), nodes: buildNodeContext(wf) });

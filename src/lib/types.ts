@@ -21,10 +21,16 @@ export type ApiNodeData = {
 
 export type ApiNode = Node<ApiNodeData, "api">;
 
+export type StartNodeData = { label: string };
+export type StartNode = Node<StartNodeData, "start">;
+
+/** Canvas node: the always-present Start node or an API request node. */
+export type WorkflowNode = ApiNode | StartNode;
+
 export type Workflow = {
   id: string;
   name: string;
-  nodes: ApiNode[];
+  nodes: WorkflowNode[];
   edges: Edge[];
 };
 

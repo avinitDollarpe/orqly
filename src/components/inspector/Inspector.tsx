@@ -37,7 +37,7 @@ export function Inspector() {
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const node = workflow?.nodes.find((n) => n.id === selectedNodeId);
-  if (!workflow || !node) return null;
+  if (!workflow || !node || node.type !== "api") return null;
   const { data } = node;
 
   const danglingSet = data.headerSetId && !headerSets.some((h) => h.id === data.headerSetId);
@@ -58,7 +58,7 @@ export function Inspector() {
   const responsePaths = run?.response ? flattenPaths(run.response.body) : [];
 
   return (
-    <aside className="flex w-96 shrink-0 flex-col border-l border-line bg-surface">
+    <aside className="glass absolute top-16 right-3 bottom-3 z-20 flex w-96 flex-col overflow-hidden rounded-2xl">
       <div className="flex items-center gap-2 border-b border-line px-4 py-2.5">
         <MethodChip method={data.method} />
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">
@@ -67,7 +67,7 @@ export function Inspector() {
         <button
           onClick={() => runSingleNode(workflow, node.id)}
           disabled={isRunning}
-          className="rounded-md px-2 py-0.5 text-xs font-medium text-accent transition hover:bg-accent-soft disabled:opacity-50"
+          className="rounded-md px-2 py-0.5 text-xs font-medium text-muted transition hover:text-accent disabled:opacity-50"
           title="Run only this node, reusing previous responses"
         >
           ▶ Run node
@@ -215,7 +215,7 @@ export function Inspector() {
                     onClick={() => patch({ bodyMode: mode })}
                     className={`flex-1 px-2 py-1.5 font-medium capitalize transition ${
                       data.bodyMode === mode
-                        ? "bg-accent-soft text-accent"
+                        ? "bg-surface-2 text-foreground"
                         : "text-muted hover:bg-surface-2"
                     }`}
                   >

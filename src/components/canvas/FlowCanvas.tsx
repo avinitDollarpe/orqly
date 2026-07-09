@@ -4,17 +4,17 @@ import {
   Background,
   BackgroundVariant,
   Controls,
-  MiniMap,
   ReactFlow,
   useReactFlow,
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { ApiNode } from "@/components/canvas/ApiNode";
+import { StartNode } from "@/components/canvas/StartNode";
 import { useActiveWorkflow, useStore } from "@/lib/store";
 
-const nodeTypes = { api: ApiNode };
+const nodeTypes = { api: ApiNode, start: StartNode };
 
 export function FlowCanvas() {
   const workflow = useActiveWorkflow();
@@ -25,7 +25,18 @@ export function FlowCanvas() {
   const selectNode = useStore((s) => s.selectNode);
   const runningEdgeId = useStore((s) => s.runningEdgeId);
   const doneEdgeIds = useStore((s) => s.doneEdgeIds);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
+
+  // Re-center when switching to (or creating) another workflow, otherwise the
+  // new graph renders wherever the previous viewport happened to be
+  const workflowId = workflow?.id;
+  useEffect(() => {
+    if (!workflowId) return;
+    const raf = requestAnimationFrame(() =>
+      void fitView({ padding: 0.3, maxZoom: 1 }),
+    );
+    return () => cancelAnimationFrame(raf);
+  }, [workflowId, fitView]);
 
   const edges: Edge[] = useMemo(
     () =>
@@ -52,14 +63,14 @@ export function FlowCanvas() {
 
   if (!workflow) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-muted">
+      <div className="absolute inset-0 flex items-center justify-center text-sm text-muted">
         Create a workflow to get started
       </div>
     );
   }
 
   return (
-    <div className="relative min-w-0 flex-1">
+    <div className="absolute inset-0">
       <ReactFlow
         nodes={workflow.nodes}
         edges={edges}
@@ -71,7 +82,7 @@ export function FlowCanvas() {
         onPaneClick={() => selectNode(null)}
         onDoubleClick={onDoubleClick}
         defaultEdgeOptions={{ type: "smoothstep" }}
-        proOptions={{ hideAttribution: false }}
+        proOptions={{ hideAttribution: true }}
         fitView
         zoomOnDoubleClick={false}
         deleteKeyCode={["Backspace", "Delete"]}
@@ -84,16 +95,8 @@ export function FlowCanvas() {
           size={1.5}
           color="var(--canvas-dot)"
         />
-        <MiniMap pannable zoomable position="bottom-right" />
-        <Controls position="bottom-left" showInteractive={false} />
+        <Controls position="bottom-right" showInteractive={false} />
       </ReactFlow>
-      <button
-        onClick={() => addNode()}
-        className="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium shadow-panel transition hover:bg-surface-2"
-        title="Add a request node (or double-click the canvas)"
-      >
-        <span className="text-accent">+</span> Add request
-      </button>
     </div>
   );
 }
