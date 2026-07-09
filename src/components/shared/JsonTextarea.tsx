@@ -38,8 +38,8 @@ export function JsonTextarea({
         rows={rows}
         spellCheck={false}
         placeholder={placeholder}
-        className={`w-full resize-y rounded-lg border bg-surface px-2.5 py-2 font-mono text-xs leading-relaxed text-foreground outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/15 ${
-          error ? "border-danger" : "border-line focus:border-accent"
+        className={`w-full resize-y rounded-xl border bg-foreground/[0.03] px-3 py-2.5 font-mono text-xs leading-relaxed text-foreground outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/20 ${
+          error ? "border-danger" : "border-white/12 focus:border-accent/50"
         }`}
       />
       {error && <p className="mt-1 text-xs text-danger">Invalid JSON: {error}</p>}

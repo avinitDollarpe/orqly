@@ -1,15 +1,13 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { methodHue } from "@/lib/method-colors";
 import type { Method } from "@/lib/types";
 
-/** Method chip colors come from the CSS palette so dark mode follows. */
+/** Method chip colors — explicit hues so they render inside React Flow nodes. */
 export function methodStyle(method: Method): React.CSSProperties {
-  const m = method.toLowerCase();
-  return {
-    color: `var(--m-${m})`,
-    background: `var(--m-${m}-bg)`,
-  };
+  const { color, background } = methodHue(method);
+  return { color, background };
 }
 
 export function MethodChip({
@@ -70,11 +68,9 @@ export function Modal({
   );
 }
 
-export const inputCls =
-  "w-full rounded-lg border border-white/15 bg-foreground/5 px-2.5 py-1.5 text-sm text-foreground placeholder:text-faint outline-none focus:border-accent focus:ring-1 focus:ring-accent";
+export const inputCls = "inspector-field";
 
-export const selectCls =
-  "rounded-lg border border-white/15 bg-foreground/5 px-2 py-1.5 text-sm text-foreground outline-none focus:border-accent focus:ring-1 focus:ring-accent";
+export const selectCls = "inspector-field cursor-pointer";
 
 export const btnPrimary =
   "inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent transition hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50";
