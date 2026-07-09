@@ -17,6 +17,18 @@ export const auth = betterAuth({
   // ngrok tunnel (for OAuth callbacks); trust both so neither trips the
   // origin check
   trustedOrigins: ["http://localhost:3000"],
+  // One user per email regardless of sign-in method: first visit creates the
+  // user, later visits with any method log into the same account. Google and
+  // GitHub verify emails, so linking on their say-so is safe;
+  // requireLocalEmailVerified is off so a password-first user (unverified)
+  // can still come back through OAuth instead of hitting account_not_linked.
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google", "github"],
+      requireLocalEmailVerified: false,
+    },
+  },
   emailAndPassword: { enabled: true },
   socialProviders: {
     ...(googleConfigured
@@ -38,9 +50,34 @@ export const auth = betterAuth({
   },
   plugins: [
     emailOTP({
+      // Resend, not Better Auth infra email — that's Pro-plan only ($20/mo);
+      // Resend free tier covers 3k emails/month with a verified domain
       async sendVerificationOTP({ email, otp, type }) {
-        // ponytail: no mailer yet — log OTP in dev so the progressive flow is testable
-        console.log(`[email-otp] ${type} for ${email}: ${otp}`);
+        // No RESEND_API_KEY (local dev): log the code instead of sending
+        if (!process.env.RESEND_API_KEY) {
+          console.log(`[email-otp] ${type} for ${email}: ${otp}`);
+          return;
+        }
+        const subject =
+          type === "sign-in"
+            ? `${otp} is your Orqly sign-in code`
+            : `${otp} is your Orqly verification code`;
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: process.env.RESEND_FROM ?? "Orqly <onboarding@resend.dev>",
+            to: [email],
+            subject,
+            text: `Your code is ${otp}. It expires in 5 minutes. If you didn't request this, ignore this email.`,
+          }),
+        });
+        if (!res.ok) {
+          throw new Error(`Resend failed (${res.status}): ${await res.text()}`);
+        }
       },
     }),
     passkey(),

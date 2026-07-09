@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
@@ -32,6 +33,7 @@ export default function RootLayout({
           body attributes before hydration and trip React's mismatch check */}
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {children}
+        <Analytics />
       </body>
     </html>
   );
