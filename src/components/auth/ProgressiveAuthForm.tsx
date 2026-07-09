@@ -331,7 +331,7 @@ export function ProgressiveAuthForm({
               <h1 className="mb-1 text-[16px] font-bold leading-[18px]">
                 Continue with email
               </h1>
-              <p className={sub}>We&apos;ll send you a one-time code.</p>
+              <p className={sub}>We&apos;ll send you a one time code.</p>
               <input
                 className={input}
                 type="email"

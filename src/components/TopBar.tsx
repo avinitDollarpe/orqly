@@ -85,7 +85,7 @@ export function TopBar({
         : { text: "Saved", tone: "success" as const };
 
   return (
-    <header className="pointer-events-none absolute top-3 right-3 left-3 z-30 flex nav-row items-center gap-2">
+    <header className="pointer-events-none absolute top-3 right-3 left-3 z-50 flex nav-row items-center gap-2">
       <div className="pointer-events-auto flex min-w-0 items-center gap-2">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent font-mono text-sm font-bold text-on-accent">
           ⌘
@@ -145,7 +145,7 @@ export function TopBar({
             <ul
               role="listbox"
               aria-label="Environment"
-              className="glass-heavy absolute top-full right-0 z-30 mt-2 min-w-[160px] overflow-hidden rounded-xl border border-line p-1 shadow-panel"
+              className="glass-heavy absolute top-full right-0 z-50 mt-2 min-w-[160px] overflow-hidden rounded-xl border border-line p-1 shadow-panel"
             >
               {[
                 { id: null as string | null, name: "No env" },
@@ -215,7 +215,7 @@ export function TopBar({
             {(userName || userEmail).charAt(0).toUpperCase()}
           </button>
           {menuOpen && (
-            <div className="glass-heavy absolute right-0 z-30 mt-2 w-56 rounded-xl p-1.5 shadow-panel">
+            <div className="glass-heavy absolute right-0 z-50 mt-2 w-56 rounded-xl p-1.5 shadow-panel">
               <div className="px-2.5 py-2">
                 <p className="truncate text-sm font-medium">{userName}</p>
                 <p className="truncate text-xs text-muted">{userEmail}</p>
