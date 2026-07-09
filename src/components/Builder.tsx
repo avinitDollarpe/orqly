@@ -6,6 +6,7 @@ import { FlowCanvas } from "@/components/canvas/FlowCanvas";
 import { Inspector } from "@/components/inspector/Inspector";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { TopBar } from "@/components/TopBar";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { WorkflowWizard } from "@/components/WorkflowWizard";
 import { useStore } from "@/lib/store";
 
@@ -21,6 +22,9 @@ export function Builder({
   const selectedNodeId = useStore((s) => s.selectedNodeId);
   const wizardOpen = useStore((s) => s.wizardOpen);
   const setWizardOpen = useStore((s) => s.setWizardOpen);
+  const deleteWorkflowConfirm = useStore((s) => s.deleteWorkflowConfirm);
+  const setDeleteWorkflowConfirm = useStore((s) => s.setDeleteWorkflowConfirm);
+  const deleteWorkflow = useStore((s) => s.deleteWorkflow);
 
   useEffect(() => {
     if (!hydrated) void hydrate();
@@ -38,10 +42,35 @@ export function Builder({
     <ReactFlowProvider>
       <div className="relative h-screen overflow-hidden bg-background">
         <FlowCanvas />
-        <Sidebar />
         <TopBar userName={userName} userEmail={userEmail} />
+        <Sidebar />
         {selectedNodeId && <Inspector key={selectedNodeId} />}
         {wizardOpen && <WorkflowWizard onClose={() => setWizardOpen(false)} />}
+        <ConfirmDialog
+          open={deleteWorkflowConfirm != null}
+          title="Delete workflow?"
+          description={
+            deleteWorkflowConfirm ? (
+              <>
+                <span className="font-semibold text-foreground">
+                  {deleteWorkflowConfirm.name}
+                </span>{" "}
+                and its{" "}
+                {deleteWorkflowConfirm.requests === 1
+                  ? "1 request node"
+                  : `${deleteWorkflowConfirm.requests} request nodes`}{" "}
+                will be removed from your workspace. This cannot be undone.
+              </>
+            ) : null
+          }
+          cancelLabel="Keep workflow"
+          confirmLabel="Delete workflow"
+          onCancel={() => setDeleteWorkflowConfirm(null)}
+          onConfirm={() => {
+            if (deleteWorkflowConfirm) deleteWorkflow(deleteWorkflowConfirm.id);
+            setDeleteWorkflowConfirm(null);
+          }}
+        />
       </div>
     </ReactFlowProvider>
   );

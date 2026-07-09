@@ -11,25 +11,6 @@ type EditorTarget =
   | { kind: "headerSet"; id: string }
   | { kind: "environment"; id: string };
 
-/* Claude-style panel toggle: a frame with the sidebar column marked */
-function PanelIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 16 16" aria-hidden>
-      <rect
-        x="1.5"
-        y="2.5"
-        width="13"
-        height="11"
-        rx="2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.3"
-      />
-      <path d="M6 2.5v11" fill="none" stroke="currentColor" strokeWidth="1.3" />
-    </svg>
-  );
-}
-
 function Section({
   title,
   count,
@@ -176,39 +157,13 @@ export function Sidebar() {
 
   return (
     <>
-      {/* reopen button — a bare icon, the only thing left when the sidebar is away */}
-      <button
-        onClick={() => s.setSidebarOpen(true)}
-        aria-label="Open sidebar"
-        title="Open sidebar"
-        className={`absolute top-3 left-4 z-20 flex h-11 w-8 cursor-pointer items-center justify-center text-muted transition hover:text-foreground ${
-          s.sidebarOpen ? "pointer-events-none opacity-0" : "opacity-100 delay-150"
-        }`}
-      >
-        <PanelIcon />
-      </button>
-
+      {/* Floats below the nav line — the logo and panel toggle live in the TopBar */}
       <aside
-        className={`glass absolute top-3 bottom-3 left-3 z-20 flex w-60 flex-col overflow-y-auto rounded-2xl transition-transform duration-300 ease-out motion-reduce:transition-none ${
+        className={`glass absolute top-(--inspector-top) bottom-(--inspector-gap) left-3 z-20 flex w-60 flex-col overflow-hidden rounded-2xl transition-transform duration-300 ease-out motion-reduce:transition-none ${
           s.sidebarOpen ? "translate-x-0" : "-translate-x-[110%]"
         }`}
       >
-        <div className="flex items-center gap-2 border-b border-line px-4 py-3.5">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent font-mono text-base font-bold text-on-accent">
-            ⌘
-          </span>
-          <span className="text-sm font-semibold tracking-tight">Orqly</span>
-          <span className="flex-1" />
-          <button
-            onClick={() => s.setSidebarOpen(false)}
-            aria-label="Collapse sidebar"
-            title="Collapse sidebar"
-            className="-mr-1.5 flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-faint transition hover:bg-foreground/10 hover:text-foreground"
-          >
-            <PanelIcon />
-          </button>
-        </div>
-
+        <div className="min-h-0 flex-1 overflow-y-auto">
         {/* workflows: the primary object, roomier than the library below */}
         <Section
           title="Workflows"
@@ -225,7 +180,11 @@ export function Sidebar() {
               active={wf.id === s.activeWorkflowId}
               onClick={() => s.setActiveWorkflow(wf.id)}
               onDelete={() =>
-                confirm(`Delete workflow "${wf.name}"?`) && s.deleteWorkflow(wf.id)
+                s.setDeleteWorkflowConfirm({
+                  id: wf.id,
+                  name: wf.name,
+                  requests: Number(requestCount(wf.id)),
+                })
               }
             />
           ))}
@@ -302,6 +261,7 @@ export function Sidebar() {
               />
             ))}
           </Section>
+        </div>
         </div>
 
         {editingBody && (
