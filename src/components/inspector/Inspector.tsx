@@ -111,7 +111,6 @@ export function Inspector() {
   const selectedNodeId = useStore((s) => s.selectedNodeId);
   const updateNodeData = useStore((s) => s.updateNodeData);
   const selectNode = useStore((s) => s.selectNode);
-  const headerSets = useStore((s) => s.headerSets);
   const savedBodies = useStore((s) => s.savedBodies);
   const isRunning = useStore((s) => s.isRunning);
   const run = useStore((s) => (selectedNodeId ? s.runs[selectedNodeId] : undefined));
@@ -126,7 +125,6 @@ export function Inspector() {
   const { data } = node;
   const step = nodeLevel(workflow, node.id);
 
-  const danglingSet = data.headerSetId && !headerSets.some((h) => h.id === data.headerSetId);
   const danglingBody =
     data.bodyMode === "saved" &&
     data.savedBodyId &&
@@ -310,31 +308,14 @@ export function Inspector() {
             </Section>
 
             <Section title="Headers">
-              <select
-                value={danglingSet ? "" : (data.headerSetId ?? "")}
-                onChange={(e) =>
-                  patch({ headerSetId: e.target.value || undefined })
-                }
-                className={`${fieldCls} mb-3 cursor-pointer`}
-              >
-                <option value="">No header set</option>
-                {headerSets.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.name}
-                  </option>
-                ))}
-              </select>
-              {danglingSet && (
-                <Notice tone="warning">
-                  The header set this node referenced was deleted.
-                </Notice>
-              )}
               <KVTable
                 rows={data.headers}
                 onChange={(headers) => patch({ headers })}
                 keyPlaceholder="Header"
               />
-              <p className={`${hintCls} mt-2`}>Inline rows override the header set.</p>
+              <p className={`${hintCls} mt-2`}>
+                Inline rows override the workflow header set (picked in the top bar).
+              </p>
             </Section>
 
             <Section title="Body">

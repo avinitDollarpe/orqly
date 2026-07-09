@@ -38,6 +38,8 @@ type Store = {
   environments: Environment[];
   activeWorkflowId: string | null;
   activeEnvId: string | null;
+  /** Single header set applied to every node in the active workflow. */
+  activeHeaderSetId: string | null;
   selectedNodeId: string | null;
   saveState: SaveState;
   /** Epoch ms of the last successful save — drives "Updated …" in the nav. */
@@ -94,6 +96,7 @@ type Store = {
   upsertEnvironment: (e: Environment) => void;
   deleteEnvironment: (id: string) => void;
   setActiveEnv: (id: string | null) => void;
+  setActiveHeaderSet: (id: string | null) => void;
 
   selectNode: (id: string | null) => void;
 
@@ -309,6 +312,7 @@ export const useStore = create<Store>((set, get) => {
     environments: [],
     activeWorkflowId: null,
     activeEnvId: null,
+    activeHeaderSetId: null,
     selectedNodeId: null,
     saveState: "idle",
     lastSavedAt: null,
@@ -357,6 +361,7 @@ export const useStore = create<Store>((set, get) => {
         environments,
         activeWorkflowId: workflows[0]?.id ?? null,
         activeEnvId: environments[0]?.id ?? null,
+        activeHeaderSetId: headerSets[0]?.id ?? null,
         wizardOpen: firstTime,
       });
     },
@@ -674,7 +679,13 @@ export const useStore = create<Store>((set, get) => {
       );
     },
     deleteHeaderSet: (id) => {
-      set((s) => ({ headerSets: s.headerSets.filter((x) => x.id !== id) }));
+      set((s) => ({
+        headerSets: s.headerSets.filter((x) => x.id !== id),
+        activeHeaderSetId:
+          s.activeHeaderSetId === id
+            ? (s.headerSets.find((x) => x.id !== id)?.id ?? null)
+            : s.activeHeaderSetId,
+      }));
       destroy("header-sets", id);
     },
 
@@ -700,6 +711,7 @@ export const useStore = create<Store>((set, get) => {
       destroy("environments", id);
     },
     setActiveEnv: (id) => set({ activeEnvId: id }),
+    setActiveHeaderSet: (id) => set({ activeHeaderSetId: id }),
 
     canUndo: () => {
       const id = get().activeWorkflowId;

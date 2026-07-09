@@ -78,8 +78,8 @@ function buildNodeContext(wf: Workflow): InterpolationContext["nodes"] {
 }
 
 function resolveRequest(node: ApiNode, ctx: InterpolationContext): ResolvedRequest {
-  const { headerSets, savedBodies } = useStore.getState();
-  const set = headerSets.find((h) => h.id === node.data.headerSetId);
+  const { headerSets, savedBodies, activeHeaderSetId } = useStore.getState();
+  const set = headerSets.find((h) => h.id === activeHeaderSetId);
 
   const headers: Record<string, string> = {};
   const apply = (kvs: KV[]) => {

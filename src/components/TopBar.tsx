@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { PillPicker } from "@/components/PillPicker";
 import { authClient } from "@/lib/auth-client";
 import { runWorkflow } from "@/lib/runner";
 import { useActiveWorkflow, useStore } from "@/lib/store";
@@ -50,14 +51,15 @@ export function TopBar({
   const environments = useStore((s) => s.environments);
   const activeEnvId = useStore((s) => s.activeEnvId);
   const setActiveEnv = useStore((s) => s.setActiveEnv);
+  const headerSets = useStore((s) => s.headerSets);
+  const activeHeaderSetId = useStore((s) => s.activeHeaderSetId);
+  const setActiveHeaderSet = useStore((s) => s.setActiveHeaderSet);
   const renameWorkflow = useStore((s) => s.renameWorkflow);
   const isRunning = useStore((s) => s.isRunning);
   const saveState = useStore((s) => s.saveState);
   const lastSavedAt = useStore((s) => s.lastSavedAt);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [envOpen, setEnvOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const envRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -68,17 +70,9 @@ export function TopBar({
     return () => document.removeEventListener("mousedown", close);
   }, [menuOpen]);
 
-  useEffect(() => {
-    if (!envOpen) return;
-    const close = (e: MouseEvent) => {
-      if (!envRef.current?.contains(e.target as Node)) setEnvOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [envOpen]);
-
-  const activeEnv = environments.find((e) => e.id === activeEnvId);
-  const envLabel = activeEnv?.name ?? "No env";
+  const envLabel = environments.find((e) => e.id === activeEnvId)?.name ?? "No env";
+  const headerLabel =
+    headerSets.find((h) => h.id === activeHeaderSetId)?.name ?? "No headers";
   const requestCount = workflow?.nodes.filter((n) => n.type === "api").length ?? 0;
 
   const saveChip =
@@ -120,78 +114,26 @@ export function TopBar({
       <span className="min-w-2 flex-1" />
 
       <div className="pointer-events-auto flex items-center gap-2">
-        <div ref={envRef} className="relative">
-          <button
-            type="button"
-            onClick={() => setEnvOpen((o) => !o)}
-            aria-haspopup="listbox"
-            aria-expanded={envOpen}
-            aria-label="Environment"
-            className="nav-pill cursor-pointer gap-2 pr-3 pl-3.5 text-foreground transition outline-none hover:bg-foreground/[0.09] focus-visible:ring-2 focus-visible:ring-accent/40"
-          >
-            {envLabel}
-            <svg
-              className={`h-3 w-3 shrink-0 text-muted transition ${envOpen ? "rotate-180" : ""}`}
-              viewBox="0 0 10 10"
-              aria-hidden
-            >
-              <path
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="m2 3.5 3 3 3-3"
-              />
-            </svg>
-          </button>
-          {envOpen && (
-            <ul
-              role="listbox"
-              aria-label="Environment"
-              className="glass-heavy absolute top-full right-0 z-50 mt-2 min-w-[160px] overflow-hidden rounded-xl border border-line p-1 shadow-panel"
-            >
-              {[
-                { id: null as string | null, name: "No env" },
-                ...environments.map((e) => ({ id: e.id, name: e.name })),
-              ].map((env) => {
-                const selected = (activeEnvId ?? null) === env.id;
-                return (
-                  <li key={env.id ?? "none"} role="option" aria-selected={selected}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveEnv(env.id);
-                        setEnvOpen(false);
-                      }}
-                      className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition hover:bg-foreground/8 ${
-                        selected ? "text-foreground" : "text-muted hover:text-foreground"
-                      }`}
-                    >
-                      <span className="truncate">{env.name}</span>
-                      {selected && (
-                        <svg
-                          className="h-3 w-3 flex-none text-accent"
-                          viewBox="0 0 12 12"
-                          aria-hidden
-                        >
-                          <path
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.6"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M2.5 6.2 5 8.7 9.5 3.8"
-                          />
-                        </svg>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+        <PillPicker
+          ariaLabel="Header set"
+          label={headerLabel}
+          items={[
+            { id: null, name: "No headers" },
+            ...headerSets.map((h) => ({ id: h.id, name: h.name })),
+          ]}
+          activeId={activeHeaderSetId}
+          onSelect={setActiveHeaderSet}
+        />
+        <PillPicker
+          ariaLabel="Environment"
+          label={envLabel}
+          items={[
+            { id: null, name: "No env" },
+            ...environments.map((e) => ({ id: e.id, name: e.name })),
+          ]}
+          activeId={activeEnvId}
+          onSelect={setActiveEnv}
+        />
 
         <button
           type="button"
