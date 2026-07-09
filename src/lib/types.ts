@@ -24,8 +24,7 @@ export type ApiNodeData = {
   placement?: NodePlacement;
   method: Method;
   url: string;
-  headerSetId?: string;
-  /** Inline headers, merged over the referenced header set. */
+  /** Inline headers, merged over the workflow's active header set. */
   headers: KV[];
   bodyMode: "none" | "saved" | "inline";
   savedBodyId?: string;

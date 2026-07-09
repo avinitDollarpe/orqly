@@ -63,7 +63,6 @@ export function seedDemo(): {
         placement: "below",
         method: "POST",
         url: "{{env.BASE_URL}}/api/echo",
-        headerSetId: headerSet.id,
         headers: [],
         bodyMode: "saved",
         savedBodyId: savedBody.id,
@@ -80,7 +79,6 @@ export function seedDemo(): {
         placement: "below",
         method: "POST",
         url: "{{env.BASE_URL}}/api/echo",
-        headerSetId: headerSet.id,
         headers: [],
         bodyMode: "inline",
         inlineBody: JSON.stringify(
@@ -104,7 +102,6 @@ export function seedDemo(): {
         placement: "below",
         method: "POST",
         url: "{{env.BASE_URL}}/api/echo",
-        headerSetId: headerSet.id,
         headers: [],
         bodyMode: "inline",
         inlineBody: JSON.stringify(
