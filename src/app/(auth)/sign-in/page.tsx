@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
-import { AuthForm } from "@/components/auth/AuthForm";
+import { ProgressiveAuthForm } from "@/components/auth/ProgressiveAuthForm";
 import { getSession } from "@/lib/session";
 
 export default async function SignInPage() {
   if (await getSession()) redirect("/");
   return (
-    <AuthForm mode="sign-in" googleEnabled={!!process.env.GOOGLE_CLIENT_ID} />
+    <ProgressiveAuthForm
+      githubEnabled={!!process.env.GITHUB_CLIENT_ID}
+      googleEnabled={!!process.env.GOOGLE_CLIENT_ID}
+    />
   );
 }

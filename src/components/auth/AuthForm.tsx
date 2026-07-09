@@ -6,7 +6,7 @@ import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
 const inputCls =
-  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-foreground placeholder:text-faint outline-none focus:border-accent focus:ring-2 focus:ring-accent/20";
+  "w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-foreground placeholder:text-faint outline-none focus:border-border-strong focus:ring-2 focus:ring-accent/10";
 
 export function AuthForm({
   mode,
@@ -40,15 +40,24 @@ export function AuthForm({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-6">
-      <div className="w-full max-w-sm">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-6">
+      {/* Dot Field: playground dot grid + breathing orange glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(rgb(208_219_218/0.14)_1.2px,transparent_1.2px)] bg-[size:22px_22px]"
+      />
+      <div
+        aria-hidden
+        className="bg-pulse pointer-events-none absolute inset-0 bg-[radial-gradient(60%_55%_at_50%_30%,rgb(255_90_25/0.13),transparent_70%)]"
+      />
+      <div className="relative w-full max-w-sm">
         <div className="mb-8 flex items-center justify-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-strong font-mono text-sm font-bold text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent font-mono text-xl font-bold text-on-accent">
             ⌘
           </span>
           <span className="text-lg font-semibold tracking-tight">Orqly</span>
         </div>
-        <div className="rounded-2xl border border-line bg-surface p-6 shadow-panel">
+        <div className="glass rounded-2xl p-6">
           <h1 className="mb-1 text-base font-semibold">
             {mode === "sign-up" ? "Create your account" : "Welcome back"}
           </h1>
@@ -91,7 +100,7 @@ export function AuthForm({
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-lg bg-accent-strong px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+              className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent transition hover:brightness-95 disabled:opacity-50"
             >
               {busy
                 ? "Please wait…"
@@ -109,7 +118,7 @@ export function AuthForm({
               </div>
               <button
                 onClick={() => authClient.signIn.social({ provider: "google" })}
-                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium transition hover:bg-surface-2"
+                className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-medium transition hover:border-border-strong"
               >
                 Continue with Google
               </button>
