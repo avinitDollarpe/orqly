@@ -21,8 +21,11 @@ export function FlowCanvas() {
   const onNodesChange = useStore((s) => s.onNodesChange);
   const onEdgesChange = useStore((s) => s.onEdgesChange);
   const onConnect = useStore((s) => s.onConnect);
+  const onNodeDragStart = useStore((s) => s.onNodeDragStart);
   const addNode = useStore((s) => s.addNode);
   const selectNode = useStore((s) => s.selectNode);
+  const undo = useStore((s) => s.undo);
+  const redo = useStore((s) => s.redo);
   const runningEdgeId = useStore((s) => s.runningEdgeId);
   const doneEdgeIds = useStore((s) => s.doneEdgeIds);
   const { fitView } = useReactFlow();
@@ -37,6 +40,18 @@ export function FlowCanvas() {
     );
     return () => cancelAnimationFrame(raf);
   }, [workflowId, fitView]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod || e.key.toLowerCase() !== "z") return;
+      e.preventDefault();
+      if (e.shiftKey) redo();
+      else undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
 
   const edges: Edge[] = useMemo(
     () =>
@@ -75,6 +90,7 @@ export function FlowCanvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeDragStart={onNodeDragStart}
         onNodeClick={(_, node) => selectNode(node.id)}
         onPaneClick={() => selectNode(null)}
         onDoubleClick={onDoubleClick}

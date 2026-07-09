@@ -78,6 +78,7 @@ type Store = {
   /** Create a workflow pre-populated with imported API nodes (OpenAPI). */
   createWorkflowFromNodes: (name: string, nodes: ApiNode[], edges: Edge[]) => void;
   renameWorkflow: (id: string, name: string) => void;
+  setWorkflowPreRequestScript: (id: string, script: string) => void;
   deleteWorkflow: (id: string) => void;
   setActiveWorkflow: (id: string) => void;
   importBundle: (bundle: WorkflowBundle) => void;
@@ -92,6 +93,14 @@ type Store = {
   setActiveEnv: (id: string | null) => void;
 
   selectNode: (id: string | null) => void;
+
+  /** Canvas graph undo/redo for the active workflow. */
+  historyTick: number;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
+  undo: () => void;
+  redo: () => void;
+  onNodeDragStart: () => void;
 
   // run-state setters (used by the runner)
   setNodeRun: (nodeId: string, run: NodeRun) => void;
@@ -212,7 +221,69 @@ function ensureStartNode(wf: Workflow): Workflow {
 
 /* ---------- store ---------- */
 
+function workflowPayload(wf: Workflow | undefined) {
+  if (!wf) return undefined;
+  return {
+    name: wf.name,
+    nodes: wf.nodes,
+    edges: wf.edges,
+    preRequestScript: wf.preRequestScript ?? "",
+  };
+}
+
+type GraphSnapshot = { nodes: WorkflowNode[]; edges: Edge[] };
+
+const MAX_GRAPH_HISTORY = 50;
+const graphPast: Record<string, GraphSnapshot[]> = {};
+const graphFuture: Record<string, GraphSnapshot[]> = {};
+
+function cloneGraph(wf: Workflow): GraphSnapshot {
+  return {
+    nodes: structuredClone(wf.nodes),
+    edges: structuredClone(wf.edges),
+  };
+}
+
+function snapshotsEqual(a: GraphSnapshot, b: GraphSnapshot) {
+  return (
+    JSON.stringify(a.nodes) === JSON.stringify(b.nodes) &&
+    JSON.stringify(a.edges) === JSON.stringify(b.edges)
+  );
+}
+
 export const useStore = create<Store>((set, get) => {
+  function commitGraphHistory() {
+    const { workflows, activeWorkflowId, historyTick } = get();
+    const wf = workflows.find((w) => w.id === activeWorkflowId);
+    if (!wf) return;
+    const snap = cloneGraph(wf);
+    const past = graphPast[wf.id] ?? [];
+    const last = past[past.length - 1];
+    if (last && snapshotsEqual(last, snap)) return;
+    graphPast[wf.id] = [...past, snap].slice(-MAX_GRAPH_HISTORY);
+    graphFuture[wf.id] = [];
+    set({ historyTick: historyTick + 1 });
+  }
+
+  function restoreGraph(snapshot: GraphSnapshot) {
+    const { workflows, activeWorkflowId, selectedNodeId, historyTick } = get();
+    const wf = workflows.find((w) => w.id === activeWorkflowId);
+    if (!wf) return;
+    const nodeIds = new Set(snapshot.nodes.map((n) => n.id));
+    set({
+      workflows: workflows.map((w) =>
+        w.id === wf.id
+          ? { ...w, nodes: snapshot.nodes, edges: snapshot.edges }
+          : w,
+      ),
+      selectedNodeId:
+        selectedNodeId && nodeIds.has(selectedNodeId) ? selectedNodeId : null,
+      historyTick: historyTick + 1,
+    });
+    scheduleSave("workflows", wf.id, () =>
+      workflowPayload(get().workflows.find((w) => w.id === wf.id)),
+    );
+  }
   /** Mutate the active workflow and schedule its save. */
   function patchActive(fn: (wf: Workflow) => Partial<Workflow>) {
     const { workflows, activeWorkflowId } = get();
@@ -222,7 +293,7 @@ export const useStore = create<Store>((set, get) => {
     set({ workflows: workflows.map((w) => (w.id === wf.id ? next : w)) });
     scheduleSave("workflows", wf.id, () => {
       const cur = get().workflows.find((w) => w.id === wf.id);
-      return cur && { name: cur.name, nodes: cur.nodes, edges: cur.edges };
+      return workflowPayload(cur);
     });
   }
 
@@ -248,6 +319,7 @@ export const useStore = create<Store>((set, get) => {
     runs: {},
     runningEdgeId: null,
     doneEdgeIds: [],
+    historyTick: 0,
 
     hydrate: async () => {
       if (hydrating || get().hydrated) return;
@@ -285,13 +357,22 @@ export const useStore = create<Store>((set, get) => {
       });
     },
 
-    onNodesChange: (changes) =>
-      patchActive((wf) => ({ nodes: applyNodeChanges(changes, wf.nodes) })),
+    onNodesChange: (changes) => {
+      if (changes.some((c) => c.type === "remove" || c.type === "add")) {
+        commitGraphHistory();
+      }
+      patchActive((wf) => ({ nodes: applyNodeChanges(changes, wf.nodes) }));
+    },
 
-    onEdgesChange: (changes) =>
-      patchActive((wf) => ({ edges: applyEdgeChanges(changes, wf.edges) })),
+    onEdgesChange: (changes) => {
+      if (changes.some((c) => c.type === "remove" || c.type === "add")) {
+        commitGraphHistory();
+      }
+      patchActive((wf) => ({ edges: applyEdgeChanges(changes, wf.edges) }));
+    },
 
-    onConnect: (conn) =>
+    onConnect: (conn) => {
+      commitGraphHistory();
       patchActive((wf) => ({
         edges: [
           ...wf.edges.filter(
@@ -304,11 +385,15 @@ export const useStore = create<Store>((set, get) => {
             type: "smoothstep",
           } satisfies Edge,
         ],
-      })),
+      }));
+    },
+
+    onNodeDragStart: () => commitGraphHistory(),
 
     addNode: (opts) => {
       const id = uid();
       const { selectedNodeId } = get();
+      commitGraphHistory();
       patchActive((wf) => {
         const taken = new Set(
           wf.nodes.filter((n) => n.type === "api").map((n) => n.data.label),
@@ -370,7 +455,8 @@ export const useStore = create<Store>((set, get) => {
       return id;
     },
 
-    updateNodeData: (nodeId, patch) =>
+    updateNodeData: (nodeId, patch) => {
+      commitGraphHistory();
       patchActive((wf) => {
         if (typeof patch.label === "string") {
           const taken = new Set(
@@ -401,7 +487,8 @@ export const useStore = create<Store>((set, get) => {
         return "level" in patch || "placement" in patch
           ? autoLayout(next)
           : next;
-      }),
+      });
+    },
 
     createWorkflow: () => {
       const wf: Workflow = {
@@ -459,10 +546,16 @@ export const useStore = create<Store>((set, get) => {
       set((s) => ({
         workflows: s.workflows.map((w) => (w.id === id ? { ...w, name } : w)),
       }));
-      scheduleSave("workflows", id, () => {
-        const cur = get().workflows.find((w) => w.id === id);
-        return cur && { name: cur.name, nodes: cur.nodes, edges: cur.edges };
-      });
+      scheduleSave("workflows", id, () => workflowPayload(get().workflows.find((w) => w.id === id)));
+    },
+
+    setWorkflowPreRequestScript: (id, script) => {
+      set((s) => ({
+        workflows: s.workflows.map((w) =>
+          w.id === id ? { ...w, preRequestScript: script } : w,
+        ),
+      }));
+      scheduleSave("workflows", id, () => workflowPayload(get().workflows.find((w) => w.id === id)));
     },
 
     deleteWorkflow: (id) => {
@@ -572,6 +665,45 @@ export const useStore = create<Store>((set, get) => {
       destroy("environments", id);
     },
     setActiveEnv: (id) => set({ activeEnvId: id }),
+
+    canUndo: () => {
+      const id = get().activeWorkflowId;
+      return id ? (graphPast[id]?.length ?? 0) > 0 : false;
+    },
+    canRedo: () => {
+      const id = get().activeWorkflowId;
+      return id ? (graphFuture[id]?.length ?? 0) > 0 : false;
+    },
+    undo: () => {
+      const { activeWorkflowId } = get();
+      if (!activeWorkflowId) return;
+      const past = graphPast[activeWorkflowId];
+      if (!past?.length) return;
+      const wf = get().workflows.find((w) => w.id === activeWorkflowId);
+      if (!wf) return;
+      const prev = past[past.length - 1]!;
+      graphPast[activeWorkflowId] = past.slice(0, -1);
+      graphFuture[activeWorkflowId] = [
+        cloneGraph(wf),
+        ...(graphFuture[activeWorkflowId] ?? []),
+      ];
+      restoreGraph(prev);
+    },
+    redo: () => {
+      const { activeWorkflowId } = get();
+      if (!activeWorkflowId) return;
+      const future = graphFuture[activeWorkflowId];
+      if (!future?.length) return;
+      const wf = get().workflows.find((w) => w.id === activeWorkflowId);
+      if (!wf) return;
+      const next = future[0]!;
+      graphFuture[activeWorkflowId] = future.slice(1);
+      graphPast[activeWorkflowId] = [
+        ...(graphPast[activeWorkflowId] ?? []),
+        cloneGraph(wf),
+      ].slice(-MAX_GRAPH_HISTORY);
+      restoreGraph(next);
+    },
 
     selectNode: (id) => {
       patchActive((wf) => ({

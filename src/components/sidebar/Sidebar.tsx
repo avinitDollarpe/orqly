@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { JsonTextarea } from "@/components/shared/JsonTextarea";
 import { KVTable } from "@/components/shared/KVTable";
-import { inputCls, Modal } from "@/components/shared/ui";
+import { btnGhost, inputCls, Modal } from "@/components/shared/ui";
+import { DEFAULT_PRE_REQUEST_SCRIPT } from "@/lib/pre-request";
 import { useStore } from "@/lib/store";
 
 type EditorTarget =
   | { kind: "body"; id: string }
   | { kind: "headerSet"; id: string }
-  | { kind: "environment"; id: string };
+  | { kind: "environment"; id: string }
+  | { kind: "preRequest" };
 
 function Section({
   title,
@@ -155,6 +157,8 @@ export function Sidebar() {
         ?.nodes.filter((n) => n.type === "api").length ?? 0,
     );
 
+  const activeWorkflow = s.workflows.find((w) => w.id === s.activeWorkflowId);
+
   return (
     <>
       {/* Floats below the nav line — the logo and panel toggle live in the TopBar */}
@@ -189,6 +193,25 @@ export function Sidebar() {
             />
           ))}
         </Section>
+
+        {activeWorkflow && (
+          <div className="mt-2 border-t border-line px-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setEditing({ kind: "preRequest" })}
+              className="flex w-full cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] text-muted transition hover:bg-foreground/5 hover:text-foreground"
+            >
+              <span>Pre-request script</span>
+              <span className="font-mono text-[10px] text-faint">
+                {activeWorkflow.preRequestScript?.trim() ? "On" : "Off"}
+              </span>
+            </button>
+            <p className="px-2.5 pt-1 text-[11px] leading-snug text-faint">
+              Runs before each API in this workflow. Use env vars like{" "}
+              <code className="font-mono">API_KEY</code>.
+            </p>
+          </div>
+        )}
 
         {/* library: reusable pieces referenced by nodes */}
         <div className="mt-4 border-t border-line pb-2">
@@ -264,6 +287,56 @@ export function Sidebar() {
         </div>
         </div>
 
+        {editing?.kind === "preRequest" && activeWorkflow && (
+          <Modal
+            title="Workflow pre-request script"
+            onClose={() => setEditing(null)}
+          >
+            <div className="space-y-3">
+              <p className="text-xs leading-relaxed text-faint">
+                Postman-style script applied to every API request in{" "}
+                <span className="font-medium text-muted">{activeWorkflow.name}</span>
+                . Read secrets with{" "}
+                <code className="font-mono">pm.environment.get(&quot;API_KEY&quot;)</code>{" "}
+                and add headers with{" "}
+                <code className="font-mono">pm.request.headers.add(&#123; key, value &#125;)</code>.
+              </p>
+              <textarea
+                className="inspector-field min-h-[300px] resize-y font-mono text-xs leading-relaxed"
+                value={activeWorkflow.preRequestScript ?? ""}
+                onChange={(e) =>
+                  s.setWorkflowPreRequestScript(activeWorkflow.id, e.target.value)
+                }
+                spellCheck={false}
+                placeholder="// Runs before each request in this workflow"
+                aria-label="Pre-request script"
+              />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className={btnGhost}
+                  onClick={() =>
+                    s.setWorkflowPreRequestScript(
+                      activeWorkflow.id,
+                      DEFAULT_PRE_REQUEST_SCRIPT,
+                    )
+                  }
+                >
+                  Use signing template
+                </button>
+                <button
+                  type="button"
+                  className={btnGhost}
+                  onClick={() =>
+                    s.setWorkflowPreRequestScript(activeWorkflow.id, "")
+                  }
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
         {editingBody && (
           <Modal title="Edit request body" onClose={() => setEditing(null)}>
             <div className="space-y-3">

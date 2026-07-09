@@ -19,6 +19,7 @@ export const workflows = pgTable("workflows", {
   name: text("name").notNull(),
   nodes: jsonb("nodes").notNull().default([]),
   edges: jsonb("edges").notNull().default([]),
+  preRequestScript: text("pre_request_script").notNull().default(""),
   ...timestamps,
 });
 

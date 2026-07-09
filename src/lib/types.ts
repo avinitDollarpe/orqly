@@ -45,6 +45,8 @@ export type Workflow = {
   name: string;
   nodes: WorkflowNode[];
   edges: Edge[];
+  /** Postman-style script run before every API request in this workflow. */
+  preRequestScript?: string;
 };
 
 export type SavedBody = { id: string; name: string; json: string };

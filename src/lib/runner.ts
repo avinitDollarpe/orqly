@@ -6,6 +6,9 @@ import {
   interpolateString,
   type InterpolationContext,
 } from "@/lib/interpolate";
+import {
+  applyPreRequestScript,
+} from "@/lib/pre-request";
 import { useStore } from "@/lib/store";
 import type {
   ApiNode,
@@ -112,18 +115,20 @@ function resolveRequest(node: ApiNode, ctx: InterpolationContext): ResolvedReque
 async function executeNode(
   node: ApiNode,
   ctx: InterpolationContext,
+  preRequestScript?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const store = useStore.getState();
   let resolved: ResolvedRequest;
   try {
     resolved = resolveRequest(node, ctx);
     if (!resolved.url) throw new InterpolationError("URL is empty");
+    resolved = applyPreRequestScript(preRequestScript, ctx.env, resolved);
   } catch (e) {
     store.setNodeRun(node.id, {
       status: "error",
       error: e instanceof Error ? e.message : String(e),
     });
-    return { ok: false };
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 
   store.setNodeRun(node.id, { status: "running", resolved });
@@ -191,7 +196,7 @@ export async function runWorkflow(wf: Workflow) {
       if (inEdge) useStore.getState().setRunningEdge(inEdge.id);
 
       const ctx = { env, nodes: buildNodeContext(wf) };
-      const { ok } = await executeNode(node, ctx);
+      const { ok } = await executeNode(node, ctx, wf.preRequestScript);
 
       useStore.getState().setRunningEdge(null);
       if (ok) {
@@ -214,7 +219,11 @@ export async function runSingleNode(wf: Workflow, nodeId: string) {
   if (!node || node.type !== "api") return;
   store.setIsRunning(true);
   try {
-    await executeNode(node, { env: buildEnv(), nodes: buildNodeContext(wf) });
+    await executeNode(
+      node,
+      { env: buildEnv(), nodes: buildNodeContext(wf) },
+      wf.preRequestScript,
+    );
   } finally {
     useStore.getState().setIsRunning(false);
   }

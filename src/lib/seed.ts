@@ -24,6 +24,7 @@ export function seedDemo(): {
     vars: [
       { key: "BASE_URL", value: window.location.origin, enabled: true },
       { key: "API_KEY", value: "demo-key-123", enabled: true },
+      { key: "API_SECRET", value: "demo-secret-456", enabled: true },
     ],
   };
 
