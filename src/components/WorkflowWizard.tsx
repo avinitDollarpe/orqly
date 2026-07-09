@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { parseOpenApi } from "@/lib/openapi";
+import { parseOpenApi, type ParsedOpenApi } from "@/lib/openapi";
 import { useStore } from "@/lib/store";
 import { METHODS, type ApiNode } from "@/lib/types";
 
 type Step =
   | { name: "choose" }
   | { name: "upload"; error?: string }
-  | { name: "processing"; fileName: string; title: string; nodes: ApiNode[] };
+  | { name: "processing"; fileName: string; parsed: ParsedOpenApi };
 
 /* Dotted mini-canvas the previews sit on — same texture as the real canvas */
 const dots: React.CSSProperties = {
@@ -28,7 +28,7 @@ function MiniNode({
   hue: string;
 }) {
   return (
-    <div className="flex w-36 items-center gap-1.5 rounded-lg border border-white/10 bg-surface/90 px-2 py-1.5 shadow-node">
+    <div className="flex w-32 items-center gap-1.5 rounded-lg border border-white/10 bg-surface/90 px-2 py-1.5 shadow-node">
       <span
         className="rounded px-1 py-px font-mono text-[8px] font-bold"
         style={{ color: hue, background: `color-mix(in srgb, ${hue} 12%, transparent)` }}
@@ -42,7 +42,7 @@ function MiniNode({
 
 function ImportPreview() {
   return (
-    <div className="flex h-full items-center justify-center gap-4" style={dots}>
+    <div className="flex h-full items-center justify-center gap-3 px-3" style={dots}>
       <div className="w-28 rounded-lg border border-white/10 bg-surface/90 shadow-node">
         <div className="border-b border-line px-2 py-1 font-mono text-[9px] text-foreground/80">
           openapi.json
@@ -137,12 +137,12 @@ function ActionCard({
           if (f) onDropFile(f);
         })
       }
-      className={`wizard-card group cursor-pointer overflow-hidden rounded-2xl border text-left transition-colors outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+      className={`wizard-card group flex cursor-pointer flex-col overflow-hidden rounded-2xl border text-left transition-colors outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
         dragging ? "border-accent/70" : "border-line hover:border-white/30"
       }`}
     >
-      <div className="h-32 border-b border-line">{preview}</div>
-      <div className="flex flex-col gap-1.5 p-4">
+      <div className="h-32 shrink-0 border-b border-line">{preview}</div>
+      <div className="flex min-h-0 flex-1 flex-col gap-1.5 p-4">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-[15px] font-bold tracking-tight">{title}</h3>
           <svg
@@ -161,7 +161,7 @@ function ActionCard({
           </svg>
         </div>
         <p className="text-[13px] leading-relaxed text-muted">{description}</p>
-        <p className="mt-1.5 font-mono text-[10px] tracking-wide text-faint uppercase">
+        <p className="mt-auto pt-1.5 font-mono text-[10px] tracking-wide text-faint uppercase">
           {meta}
         </p>
       </div>
@@ -186,7 +186,7 @@ function Processing({
   const methodCounts = METHODS.map(
     (m) => [m, nodes.filter((n) => n.data.method === m).length] as const,
   ).filter(([, c]) => c > 0);
-  const bodies = nodes.filter((n) => n.data.bodyMode === "inline").length;
+  const bodies = nodes.filter((n) => n.data.bodyMode !== "none").length;
 
   const lines = [
     `Reading ${fileName}`,
@@ -270,20 +270,44 @@ function Processing({
 export function WorkflowWizard({ onClose }: { onClose: () => void }) {
   const createWorkflow = useStore((s) => s.createWorkflow);
   const createWorkflowFromNodes = useStore((s) => s.createWorkflowFromNodes);
+  const upsertBody = useStore((s) => s.upsertBody);
+  const upsertEnvironment = useStore((s) => s.upsertEnvironment);
+  const environments = useStore((s) => s.environments);
+  const activeEnvId = useStore((s) => s.activeEnvId);
   const [step, setStep] = useState<Step>({ name: "choose" });
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function onFile(file: File) {
     try {
-      const { name, nodes } = parseOpenApi(JSON.parse(await file.text()));
-      setStep({ name: "processing", fileName: file.name, title: name, nodes });
+      const parsed = parseOpenApi(JSON.parse(await file.text()));
+      setStep({ name: "processing", fileName: file.name, parsed });
     } catch (e) {
       setStep({
         name: "upload",
         error: e instanceof Error ? e.message : "Could not parse that file",
       });
     }
+  }
+
+  /** Library bodies + BASE_URL land in the store before the workflow is created. */
+  function finishImport(parsed: ParsedOpenApi) {
+    for (const body of parsed.bodies) upsertBody(body);
+    if (parsed.baseUrl) {
+      const env = environments.find((e) => e.id === activeEnvId);
+      const vars = [
+        ...(env?.vars.filter((v) => v.key !== "BASE_URL") ?? []),
+        { key: "BASE_URL", value: parsed.baseUrl, enabled: true },
+      ];
+      // upsertEnvironment activates the new env when none is active yet
+      upsertEnvironment(
+        env
+          ? { ...env, vars }
+          : { id: crypto.randomUUID(), name: "Development", vars },
+      );
+    }
+    createWorkflowFromNodes(parsed.name, parsed.nodes, []);
+    onClose();
   }
 
   function startManually() {
@@ -430,12 +454,9 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
         {step.name === "processing" && (
           <Processing
             fileName={step.fileName}
-            title={step.title}
-            nodes={step.nodes}
-            onDone={() => {
-              createWorkflowFromNodes(step.title, step.nodes, []);
-              onClose();
-            }}
+            title={step.parsed.name}
+            nodes={step.parsed.nodes}
+            onDone={() => finishImport(step.parsed)}
           />
         )}
       </div>
