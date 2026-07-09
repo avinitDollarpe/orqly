@@ -27,20 +27,28 @@ function topoOrder(wf: Workflow): {
       indegree.set(e.target, (indegree.get(e.target) ?? 0) + 1);
     }
   }
-  const queue = wf.nodes.filter((n) => indegree.get(n.id) === 0);
+  const byX = (a: WorkflowNode, b: WorkflowNode) =>
+    a.position.x - b.position.x;
+
+  const queue = wf.nodes
+    .filter((n) => indegree.get(n.id) === 0)
+    .sort(byX);
   const order: WorkflowNode[] = [];
   while (queue.length) {
+    queue.sort(byX);
     const node = queue.shift()!;
     order.push(node);
+    const ready: WorkflowNode[] = [];
     for (const e of wf.edges) {
       if (e.source !== node.id) continue;
       const d = (indegree.get(e.target) ?? 0) - 1;
       indegree.set(e.target, d);
       if (d === 0) {
         const target = wf.nodes.find((n) => n.id === e.target);
-        if (target) queue.push(target);
+        if (target) ready.push(target);
       }
     }
+    queue.push(...ready);
   }
   const seen = new Set(order.map((n) => n.id));
   return { order, cyclic: wf.nodes.filter((n) => !seen.has(n.id)) };

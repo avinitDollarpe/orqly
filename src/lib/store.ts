@@ -10,12 +10,14 @@ import {
   type XYPosition,
 } from "@xyflow/react";
 import { create } from "zustand";
+import { autoLayout, levelFromPlacement, levelOfNode, nodeLevel, resolveEdgeSource } from "@/lib/layout";
 import { seedDemo } from "@/lib/seed";
 import type {
   ApiNode,
   ApiNodeData,
   Environment,
   HeaderSet,
+  NodePlacement,
   NodeRun,
   SavedBody,
   StartNode,
@@ -43,6 +45,11 @@ type Store = {
   /** "Create new workflow" chooser; opens on load and from the sidebar. */
   wizardOpen: boolean;
   setWizardOpen: (open: boolean) => void;
+  /** Workflow delete confirmation — rendered at app root for viewport centering. */
+  deleteWorkflowConfirm: { id: string; name: string; requests: number } | null;
+  setDeleteWorkflowConfirm: (
+    target: { id: string; name: string; requests: number } | null,
+  ) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
 
@@ -58,7 +65,12 @@ type Store = {
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (conn: Connection) => void;
-  addNode: (position?: XYPosition) => string;
+  addNode: (opts?: {
+    anchorNodeId?: string;
+    /** @deprecated use anchorNodeId */
+    afterNodeId?: string;
+    placement?: NodePlacement;
+  }) => string;
   updateNodeData: (nodeId: string, patch: Partial<ApiNodeData>) => void;
 
   // workflows
@@ -227,6 +239,8 @@ export const useStore = create<Store>((set, get) => {
     lastSavedAt: null,
     wizardOpen: false,
     setWizardOpen: (open) => set({ wizardOpen: open }),
+    deleteWorkflowConfirm: null,
+    setDeleteWorkflowConfirm: (target) => set({ deleteWorkflowConfirm: target }),
     sidebarOpen: true,
     setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
@@ -261,7 +275,7 @@ export const useStore = create<Store>((set, get) => {
 
       set({
         hydrated: true,
-        workflows: workflows.map(ensureStartNode),
+        workflows: workflows.map((w) => autoLayout(ensureStartNode(w))),
         savedBodies,
         headerSets,
         environments,
@@ -292,19 +306,38 @@ export const useStore = create<Store>((set, get) => {
         ],
       })),
 
-    addNode: (position) => {
+    addNode: (opts) => {
       const id = uid();
+      const { selectedNodeId } = get();
       patchActive((wf) => {
-        const taken = new Set(wf.nodes.map((n) => n.data.label));
+        const taken = new Set(
+          wf.nodes.filter((n) => n.type === "api").map((n) => n.data.label),
+        );
+        const placement = opts?.placement ?? "below";
+        const anchorId =
+          opts?.anchorNodeId ??
+          opts?.afterNodeId ??
+          selectedNodeId ??
+          wf.nodes.find((n) => n.type === "start")?.id;
+        const anchorLvl =
+          anchorId != null ? levelOfNode(wf, anchorId) : null;
+        const level =
+          anchorLvl != null
+            ? levelFromPlacement(anchorLvl, placement)
+            : wf.nodes.reduce(
+                  (max, n) =>
+                    n.type === "api" ? Math.max(max, nodeLevel(wf, n.id)) : max,
+                  0,
+                ) + 1;
+
         const node: ApiNode = {
           id,
           type: "api",
-          position: position ?? {
-            x: 80 + wf.nodes.length * 60,
-            y: 80 + wf.nodes.length * 40,
-          },
+          position: { x: 0, y: 0 },
           data: {
             label: uniqueLabel("Request", taken),
+            level,
+            placement,
             method: "GET",
             url: "",
             headers: [],
@@ -312,7 +345,26 @@ export const useStore = create<Store>((set, get) => {
             inlineBody: "",
           },
         };
-        return { nodes: [...wf.nodes, node] };
+
+        const edgeSource =
+          anchorId != null
+            ? resolveEdgeSource(wf, anchorId, placement, level)
+            : undefined;
+
+        const edges =
+          edgeSource && edgeSource !== id
+            ? [
+                ...wf.edges.filter((e) => e.target !== id),
+                {
+                  id: uid(),
+                  source: edgeSource,
+                  target: id,
+                  type: "smoothstep",
+                } satisfies Edge,
+              ]
+            : wf.edges;
+
+        return autoLayout({ ...wf, nodes: [...wf.nodes, node], edges });
       });
       set({ selectedNodeId: id });
       return id;
@@ -326,13 +378,29 @@ export const useStore = create<Store>((set, get) => {
           );
           patch = { ...patch, label: uniqueLabel(patch.label, taken) };
         }
-        return {
+        if (patch.placement || patch.level != null) {
+          const upstream = wf.edges.find((e) => e.target === nodeId)?.source;
+          if (upstream) {
+            const pLevel = levelOfNode(wf, upstream);
+            if (pLevel != null && patch.placement) {
+              patch = {
+                ...patch,
+                level: levelFromPlacement(pLevel, patch.placement),
+              };
+            }
+          }
+        }
+        const next = {
+          ...wf,
           nodes: wf.nodes.map((n) =>
             n.id === nodeId && n.type === "api"
               ? { ...n, data: { ...n.data, ...patch } }
               : n,
           ),
         };
+        return "level" in patch || "placement" in patch
+          ? autoLayout(next)
+          : next;
       }),
 
     createWorkflow: () => {
@@ -354,23 +422,28 @@ export const useStore = create<Store>((set, get) => {
     },
 
     createWorkflowFromNodes: (name, nodes, edges) => {
-      const start = makeStartNode({ x: nodes[0]?.position.x ?? 80, y: 40 });
-      const wf: Workflow = {
+      const start = makeStartNode();
+      const ranked = nodes.map((n, i) => ({
+        ...n,
+        data: {
+          ...n.data,
+          level: n.data.level ?? i + 1,
+          placement: n.data.placement ?? "below",
+        },
+      }));
+      const wf: Workflow = autoLayout({
         id: uid(),
         name,
-        nodes: [start, ...nodes],
-        edges: nodes.length
-          ? [
-              {
-                id: uid(),
-                source: start.id,
-                target: nodes[0].id,
-                type: "smoothstep",
-              },
-              ...edges,
-            ]
+        nodes: [start, ...ranked],
+        edges: ranked.length
+          ? ranked.map((n) => ({
+              id: uid(),
+              source: start.id,
+              target: n.id,
+              type: "smoothstep",
+            }))
           : edges,
-      };
+      });
       set((s) => ({
         workflows: [...s.workflows, wf],
         activeWorkflowId: wf.id,
@@ -419,7 +492,9 @@ export const useStore = create<Store>((set, get) => {
     importBundle: (bundle) => {
       const { workflows, savedBodies, headerSets } = get();
       // re-id the workflow to avoid clobbering an existing one
-      const wf: Workflow = ensureStartNode({ ...bundle.workflow, id: uid() });
+      const wf: Workflow = autoLayout(
+        ensureStartNode({ ...bundle.workflow, id: uid() }),
+      );
       const existingNames = new Set(workflows.map((w) => w.name));
       wf.name = uniqueLabel(wf.name, existingNames);
 
@@ -498,7 +573,12 @@ export const useStore = create<Store>((set, get) => {
     },
     setActiveEnv: (id) => set({ activeEnvId: id }),
 
-    selectNode: (id) => set({ selectedNodeId: id }),
+    selectNode: (id) => {
+      patchActive((wf) => ({
+        nodes: wf.nodes.map((n) => ({ ...n, selected: id != null && n.id === id })),
+      }));
+      set({ selectedNodeId: id });
+    },
 
     setNodeRun: (nodeId, run) =>
       set((s) => ({ runs: { ...s.runs, [nodeId]: run } })),

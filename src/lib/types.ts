@@ -6,9 +6,22 @@ export type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export const METHODS: Method[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 
+/** Where a node sits relative to its upstream parent when auto-placed. */
+export type NodePlacement = "same" | "below";
+
 export type ApiNodeData = {
   /** Display name; also the `{{nodes.<label>...}}` namespace key. */
   label: string;
+  /**
+   * Row index on the canvas (Start is 0). Nodes sharing a level sit on the
+   * same horizontal line; higher levels stack below.
+   */
+  level?: number;
+  /**
+   * Relative to the upstream parent: "same" keeps the row, "below" drops
+   * one level down. Used when adding a node and when recomputing level.
+   */
+  placement?: NodePlacement;
   method: Method;
   url: string;
   headerSetId?: string;

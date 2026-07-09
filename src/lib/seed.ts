@@ -55,9 +55,11 @@ export function seedDemo(): {
     {
       ...base,
       id: uid(),
-      position: { x: 80, y: 260 },
+      position: { x: 0, y: 0 },
       data: {
         label: "Create Customer",
+        level: 1,
+        placement: "below",
         method: "POST",
         url: "{{env.BASE_URL}}/api/echo",
         headerSetId: headerSet.id,
@@ -70,9 +72,11 @@ export function seedDemo(): {
     {
       ...base,
       id: uid(),
-      position: { x: 80, y: 470 },
+      position: { x: 0, y: 0 },
       data: {
         label: "Share KYC",
+        level: 2,
+        placement: "below",
         method: "POST",
         url: "{{env.BASE_URL}}/api/echo",
         headerSetId: headerSet.id,
@@ -92,9 +96,11 @@ export function seedDemo(): {
     {
       ...base,
       id: uid(),
-      position: { x: 80, y: 680 },
+      position: { x: 0, y: 0 },
       data: {
         label: "Create Payout",
+        level: 3,
+        placement: "below",
         method: "POST",
         url: "{{env.BASE_URL}}/api/echo",
         headerSetId: headerSet.id,

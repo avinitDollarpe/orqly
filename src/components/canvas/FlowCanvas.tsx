@@ -3,7 +3,6 @@
 import {
   Background,
   BackgroundVariant,
-  Controls,
   ReactFlow,
   useReactFlow,
   type Edge,
@@ -11,6 +10,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo } from "react";
 import { ApiNode } from "@/components/canvas/ApiNode";
+import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
 import { StartNode } from "@/components/canvas/StartNode";
 import { useActiveWorkflow, useStore } from "@/lib/store";
 
@@ -25,7 +25,7 @@ export function FlowCanvas() {
   const selectNode = useStore((s) => s.selectNode);
   const runningEdgeId = useStore((s) => s.runningEdgeId);
   const doneEdgeIds = useStore((s) => s.doneEdgeIds);
-  const { screenToFlowPosition, fitView } = useReactFlow();
+  const { fitView } = useReactFlow();
 
   // Re-center when switching to (or creating) another workflow, otherwise the
   // new graph renders wherever the previous viewport happened to be
@@ -52,13 +52,10 @@ export function FlowCanvas() {
     [workflow?.edges, runningEdgeId, doneEdgeIds],
   );
 
-  const onDoubleClick = useCallback(
-    (event: React.MouseEvent) => {
-      addNode(
-        screenToFlowPosition({ x: event.clientX - 112, y: event.clientY - 30 }),
-      );
+  const onDoubleClick = useCallback(() => {
+      addNode();
     },
-    [addNode, screenToFlowPosition],
+    [addNode],
   );
 
   if (!workflow) {
@@ -95,7 +92,7 @@ export function FlowCanvas() {
           size={1.5}
           color="var(--canvas-dot)"
         />
-        <Controls position="bottom-right" showInteractive={false} />
+        <CanvasToolbar />
       </ReactFlow>
     </div>
   );
