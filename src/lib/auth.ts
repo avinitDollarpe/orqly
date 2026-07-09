@@ -5,6 +5,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP } from "better-auth/plugins";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { otpEmailHtml } from "@/lib/otp-email";
 
 const googleConfigured =
   !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
@@ -50,6 +51,8 @@ export const auth = betterAuth({
   },
   plugins: [
     emailOTP({
+      // template copy says "expires in 10 minutes"
+      expiresIn: 600,
       // Resend, not Better Auth infra email — that's Pro-plan only ($20/mo);
       // Resend free tier covers 3k emails/month with a verified domain
       async sendVerificationOTP({ email, otp, type }) {
@@ -58,22 +61,33 @@ export const auth = betterAuth({
           console.log(`[email-otp] ${type} for ${email}: ${otp}`);
           return;
         }
-        const subject =
-          type === "sign-in"
-            ? `${otp} is your Orqly sign-in code`
-            : `${otp} is your Orqly verification code`;
+        const base = {
+          from: process.env.RESEND_FROM ?? "Orqly <onboarding@resend.dev>",
+          to: [email],
+        };
+        // Published Resend template (supplies its own subject + {{{OTP}}});
+        // falls back to the same design inlined from email-template.html
+        const payload = process.env.RESEND_TEMPLATE_ID
+          ? {
+              ...base,
+              template: {
+                id: process.env.RESEND_TEMPLATE_ID,
+                variables: { OTP: otp },
+              },
+            }
+          : {
+              ...base,
+              subject: `${otp} is your verification code for Orqly`,
+              html: otpEmailHtml(otp),
+              text: `Your code is ${otp}. It expires in 10 minutes. If you didn't request this, ignore this email.`,
+            };
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            from: process.env.RESEND_FROM ?? "Orqly <onboarding@resend.dev>",
-            to: [email],
-            subject,
-            text: `Your code is ${otp}. It expires in 5 minutes. If you didn't request this, ignore this email.`,
-          }),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) {
           throw new Error(`Resend failed (${res.status}): ${await res.text()}`);

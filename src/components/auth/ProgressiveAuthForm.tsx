@@ -321,7 +321,7 @@ export function ProgressiveAuthForm({
             <>
               <h1 className="mb-1 text-[16px] font-bold leading-[18px]">Check your email</h1>
               <p className={sub}>
-                Enter the 6-digit code we sent to{" "}
+                Enter the 6 digit code we sent to{" "}
                 <b className="font-medium text-foreground">{email}</b>
               </p>
               <OtpInputs value={otp} onChange={setOtp} />
@@ -335,28 +335,27 @@ export function ProgressiveAuthForm({
                 {busy ? "Verifying…" : "Verify"}
               </button>
               <p className={textlink}>
-                Didn&apos;t get it?{" "}
+                Didn&apos;t get it?
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => void sendCode()}
-                  className="font-medium text-accent disabled:opacity-50"
+                  className="ml-2 font-medium text-accent disabled:opacity-50"
                 >
                   Resend code
-                </button>{" "}
-                ·{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError(null);
-                    setOtp("");
-                    setStep("signin-email");
-                  }}
-                  className="font-medium text-accent"
-                >
-                  Change email
                 </button>
               </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setOtp("");
+                  setStep("signin-email");
+                }}
+                className={textlink}
+              >
+                <b className="font-medium text-accent">← Use a different email</b>
+              </button>
             </>
           )}
 

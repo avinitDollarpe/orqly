@@ -196,7 +196,7 @@ export function Inspector() {
                 type="button"
                 data-testid={`tab-${t}`}
                 onClick={() => setTab(t)}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium capitalize transition ${
+                className={`flex flex-1 items-baseline justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium capitalize transition ${
                   tab === t
                     ? "bg-surface text-foreground shadow-sm"
                     : "text-muted hover:text-foreground"
