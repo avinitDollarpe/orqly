@@ -118,8 +118,10 @@ export const auth = betterAuth({
     passkey(),
     dash({
       apiKey: process.env.BETTER_AUTH_API_KEY,
-      // ponytail: 3s default aborts JWKS fetch on cold dev start; 15s rides it out. revisit if 15s masks a real network fault, or drop toward default once JWKS is warm in prod
-      apiTimeout: 15_000,
+      // ponytail: default 3s apiTimeout. Dash awaits a remote /identify call on
+      // every sign-in POST — a 15s timeout here made "Continue with Google/GitHub"
+      // hang whenever the Infra API was slow. Cold-dev JWKS may abort at 3s;
+      // that only degrades the dash dashboard, never user sign-in.
     }),
   ],
 });
