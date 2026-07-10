@@ -1,5 +1,6 @@
 "use client";
 
+import { OrqlyMark } from "@/components/shared/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -110,8 +111,8 @@ export function TopBar({
   return (
     <header className="pointer-events-none absolute top-3 right-3 left-3 z-50 flex nav-row items-center gap-2">
       <div className="pointer-events-auto flex min-w-0 items-center gap-2">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent font-mono text-[19px] leading-none font-bold text-on-accent">
-          ⌘
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-on-accent">
+          <OrqlyMark className="h-[22px] w-[22px]" />
         </span>
         <span className="hidden text-sm font-semibold leading-none tracking-tight sm:inline">Orqly</span>
 

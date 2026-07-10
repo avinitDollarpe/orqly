@@ -14,7 +14,7 @@ import {
   TaskIcon,
   urlDisplayPath,
 } from "@/components/canvas/WorkflowNodeParts";
-import { MethodChip } from "@/components/shared/ui";
+import { MethodChip, OrqlyMark } from "@/components/shared/ui";
 import { METHOD_COLORS } from "@/lib/method-colors";
 import type { Method } from "@/lib/types";
 
@@ -500,8 +500,8 @@ export default function WaitlistPage() {
 
       <header className="absolute top-4 right-4 left-4 z-40 flex items-center gap-2.5">
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-[10px] bg-accent font-mono text-base leading-none font-bold text-on-accent">
-            ⌘
+          <span className="flex h-7 w-7 items-center justify-center rounded-[10px] bg-accent text-on-accent">
+            <OrqlyMark className="h-[19px] w-[19px]" />
           </span>
           <span className="text-[15px] font-semibold tracking-[-0.02em]">Orqly</span>
         </div>

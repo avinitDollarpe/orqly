@@ -112,6 +112,23 @@ export function Modal({
   );
 }
 
+/** Orqly mark — three canvas nodes wired in a loop. Ring takes currentColor;
+ *  node fill matches the accent chip it usually sits on. */
+export function OrqlyMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden fill="none">
+      <g stroke="currentColor" transform="translate(32 32) scale(1.18) translate(-32 -32)">
+        <circle cx="32" cy="32" r="15" strokeWidth="6.5" />
+        <g className="fill-accent" strokeWidth="4">
+          <rect x="27.5" y="12.5" width="9" height="9" rx="2.5" />
+          <rect x="14.5" y="35" width="9" height="9" rx="2.5" />
+          <rect x="40.5" y="35" width="9" height="9" rx="2.5" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
 /** beui.dev "Dot Matrix" loader — 3×3 dots, diagonal wave. Colors via currentColor. */
 // ponytail: CSS-only port of the beui variant; grab their full component if more variants needed
 export function DotMatrixLoader({

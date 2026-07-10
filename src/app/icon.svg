@@ -1,4 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="16" fill="#ff5a19"/>
-  <text x="32" y="34" text-anchor="middle" dominant-baseline="central" font-size="40" font-weight="700" font-family="-apple-system, 'Segoe UI', system-ui, sans-serif" fill="#ffffff">&#8984;</text>
+  <g stroke="#070606" fill="none" transform="translate(32 32) scale(1.18) translate(-32 -32)">
+    <circle cx="32" cy="32" r="15" stroke-width="6.5"/>
+    <g fill="#ff5a19" stroke-width="4">
+      <rect x="27.5" y="12.5" width="9" height="9" rx="2.5"/>
+      <rect x="14.5" y="35" width="9" height="9" rx="2.5"/>
+      <rect x="40.5" y="35" width="9" height="9" rx="2.5"/>
+    </g>
+  </g>
 </svg>

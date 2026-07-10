@@ -1,5 +1,6 @@
 "use client";
 
+import { OrqlyMark } from "@/components/shared/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -207,8 +208,8 @@ export function ProgressiveAuthForm({
       />
       <div className="relative w-full max-w-[340px]">
         <div className="mb-7 flex items-center justify-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-accent font-mono text-[19px] font-bold text-on-accent">
-            ⌘
+          <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-accent text-on-accent">
+            <OrqlyMark className="h-[22px] w-[22px]" />
           </span>
           <span className="text-[17px] font-semibold tracking-[-0.02em]">
             Orqly
@@ -357,7 +358,7 @@ export function ProgressiveAuthForm({
                 {busy ? "Verifying…" : "Verify"}
               </button>
               <p className={textlink}>
-                Didn&apos;t get it?
+                Didn&apos;t get it?{" "}
                 <button
                   type="button"
                   disabled={busy || cooldown > 0}
