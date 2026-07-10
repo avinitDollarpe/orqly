@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { waitlist } from "@/db/schema";
-import { BETA_COOKIE, betaCookieValue, betaGateEnabled } from "@/lib/beta";
+import { BETA_COOKIE, betaCookieValue, betaGateEnabled, passcodeMatches } from "@/lib/beta";
 
 /**
  * Public (unauthenticated) endpoint behind the beta wall's only open door:
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   }
 
   if (typeof body.passcode === "string") {
-    if (!betaGateEnabled() || body.passcode !== process.env.BETA_PASSCODE) {
+    if (!betaGateEnabled() || !passcodeMatches(body.passcode)) {
       return Response.json({ error: "Invalid passcode" }, { status: 401 });
     }
     return Response.json(

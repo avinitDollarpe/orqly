@@ -1,7 +1,8 @@
 "use client";
 
+import { Check, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   NODE_H,
   NODE_W,
@@ -25,40 +26,46 @@ import type { Method } from "@/lib/types";
 
 type RunState = "ready" | "running" | "ok" | "failed";
 
-function StatusChip({
-  state,
-  labels,
-  detail,
-}: {
-  state: RunState | "locked";
-  labels?: Partial<Record<RunState | "locked", string>>;
-  detail?: string | null;
-}) {
-  const hue =
-    state === "ok"
-      ? "var(--success)"
-      : state === "failed"
-        ? "var(--danger)"
-        : state === "locked"
-          ? "var(--faint)"
-          : "var(--accent)";
-  const text =
-    labels?.[state] ??
-    { ready: "Ready", running: "Running", ok: "OK", failed: "Failed", locked: "Locked" }[
-      state
-    ];
+type ApiError = { status: number; label: string; message: string };
+
+function mapPasscodeError(status: number, raw: string): ApiError {
+  const lower = raw.toLowerCase();
+  if (status === 404 || lower.includes("not found")) {
+    return { status: 404, label: "Not Found", message: "Invite does not exist" };
+  }
+  if (status === 410 || lower.includes("expired")) {
+    return { status: 410, label: "Gone", message: "Invite has expired" };
+  }
+  if (status === 401 || status === 403 || lower.includes("invalid")) {
+    return { status: 403, label: "Forbidden", message: "Invalid invite code" };
+  }
+  return { status, label: "Error", message: raw };
+}
+
+function ApiErrorBlock({ error }: { error: ApiError }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 px-1" aria-live="polite">
-      <span
-        className="inline-flex flex-none items-center rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-wide uppercase"
-        style={{ color: hue, background: `color-mix(in srgb, ${hue} 10%, transparent)` }}
-      >
-        {state === "running" && (
-          <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current motion-reduce:animate-none" />
-        )}
-        {text}
+    <div className="waitlist-response-panel flex flex-col gap-0.5" role="alert">
+      <span className="font-bold text-danger">
+        {error.status} {error.label}
       </span>
-      {detail && <span className="min-w-0 truncate text-xs text-muted">{detail}</span>}
+      <span className="text-muted">{error.message}</span>
+    </div>
+  );
+}
+
+function ApiSuccessBlock({ passcode }: { passcode: string }) {
+  return (
+    <div className="waitlist-response-panel waitlist-response-panel--success flex flex-col gap-1.5" role="status">
+      <div className="flex items-center gap-2">
+        <span className="font-bold text-success">200 OK</span>
+        <span className="text-[10px] text-muted">GET /beta/access</span>
+      </div>
+      <span className="text-foreground">Invite validated</span>
+      <span className="inline-flex items-center gap-1.5 text-muted">
+        <span className="waitlist-launching-dot h-1.5 w-1.5 rounded-full bg-success motion-reduce:animate-none" aria-hidden />
+        Launching workspace…
+      </span>
+      <span className="sr-only">Access granted for invite code {passcode}</span>
     </div>
   );
 }
@@ -109,7 +116,6 @@ function HeroMethodTag({ method, hue }: { method: string; hue: string }) {
     </span>
   );
 }
-
 
 const DEMO_ECHO_URL = "{{env.BASE_URL}}/api/echo";
 
@@ -222,10 +228,11 @@ function CanvasBackdrop() {
       className="waitlist-backdrop pointer-events-none absolute inset-0 hidden lg:block"
       aria-hidden
     >
-      {SCATTERED_NODES.map((node) => (
+      {SCATTERED_NODES.map((node, i) => (
         <div
           key={node.kind === "start" ? "start" : node.label}
-          className={`absolute ${node.className}${"align" in node && node.align === "right" ? " waitlist-backdrop-anchor-right" : ""}`}
+          className={`waitlist-backdrop-float absolute ${node.className}${"align" in node && node.align === "right" ? " waitlist-backdrop-anchor-right" : ""}`}
+          style={{ animationDelay: `${i * 2.4}s` }}
         >
           {node.kind === "start" ? (
             <BackdropStartNode depth={node.depth} />
@@ -245,12 +252,50 @@ function CanvasBackdrop() {
 
 function HeroCardGlow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative mt-8 w-full max-w-[380px]">
+    <div className="relative w-full max-w-[380px] sm:max-w-[400px]">
       <div
         aria-hidden
         className="waitlist-hero-glow bg-pulse pointer-events-none absolute -inset-x-10 -inset-y-8 rounded-[40px] motion-reduce:animate-none"
       />
       {children}
+    </div>
+  );
+}
+
+const TRUST_ITEMS = ["No spam", "Early access", "Help shape Orqly"] as const;
+
+const DISCORD_URL = process.env.NEXT_PUBLIC_DISCORD_URL;
+const X_URL = process.env.NEXT_PUBLIC_X_URL;
+
+function WaitlistSuccessBlock({ email }: { email: string }) {
+  return (
+    <div className="waitlist-response-panel waitlist-response-panel--success flex flex-col gap-1.5" role="status">
+      <div className="flex items-center gap-2">
+        <span className="font-bold text-success">201 Created</span>
+        <span className="text-[10px] text-muted">POST /waitlist</span>
+      </div>
+      <span className="text-foreground">You&apos;re on the waitlist!</span>
+      <span className="text-muted">We&apos;ll send your invite as soon as your access is ready.</span>
+      {(DISCORD_URL || X_URL) && (
+        <div className="mt-1 flex flex-wrap gap-2">
+          {DISCORD_URL && (
+            <a
+              href={DISCORD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="waitlist-social-btn"
+            >
+              Join Discord
+            </a>
+          )}
+          {X_URL && (
+            <a href={X_URL} target="_blank" rel="noopener noreferrer" className="waitlist-social-btn">
+              Follow on X
+            </a>
+          )}
+        </div>
+      )}
+      <span className="sr-only">Waitlist signup confirmed for {email}</span>
     </div>
   );
 }
@@ -265,8 +310,9 @@ export default function WaitlistPage() {
   const [joinState, setJoinState] = useState<RunState>("ready");
   const [joinError, setJoinError] = useState<string | null>(null);
   const [codeState, setCodeState] = useState<RunState | "locked">("locked");
-  const [codeError, setCodeError] = useState<string | null>(null);
+  const [codeError, setCodeError] = useState<ApiError | null>(null);
   const [showInvite, setShowInvite] = useState(false);
+  const [cardVisible, setCardVisible] = useState(true);
 
   async function post(body: { email?: string; passcode?: string }) {
     const res = await fetch("/api/waitlist", {
@@ -274,19 +320,20 @@ export default function WaitlistPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (res.ok) return null;
+    if (res.ok) return { ok: true as const };
     const data = await res.json().catch(() => null);
-    return (data?.error as string) ?? "Something went wrong — try again";
+    const error = (data?.error as string) ?? "Something went wrong — try again";
+    return { ok: false as const, status: res.status, error };
   }
 
   async function joinWaitlist(e: React.FormEvent) {
     e.preventDefault();
     setJoinState("running");
     setJoinError(null);
-    const error = await post({ email });
-    if (error) {
+    const result = await post({ email });
+    if (!result.ok) {
       setJoinState("failed");
-      setJoinError(error);
+      setJoinError(result.error);
     } else {
       setJoinState("ok");
     }
@@ -296,31 +343,58 @@ export default function WaitlistPage() {
     e.preventDefault();
     setCodeState("running");
     setCodeError(null);
-    const error = await post({ passcode });
-    if (error) {
+    const result = await post({ passcode: passcode.trim().toUpperCase() });
+    if (!result.ok) {
       setCodeState("failed");
-      setCodeError(error);
+      setCodeError(mapPasscodeError(result.status, result.error));
     } else {
       setCodeState("ok");
       setTimeout(() => {
         router.push("/sign-in");
         router.refresh();
-      }, 700);
+      }, 1200);
     }
   }
 
+  const switchCard = useCallback(
+    (toInvite: boolean) => {
+      if (toInvite === showInvite) return;
+      setCardVisible(false);
+      window.setTimeout(() => {
+        setShowInvite(toInvite);
+        if (toInvite) {
+          setCodeState((s) => (s === "locked" ? "ready" : s));
+        }
+        requestAnimationFrame(() => {
+          setCardVisible(true);
+          if (toInvite) inviteRef.current?.focus();
+        });
+      }, 150);
+    },
+    [showInvite],
+  );
+
   function openInvite() {
-    setShowInvite(true);
-    if (codeState === "locked") setCodeState("ready");
-    requestAnimationFrame(() => inviteRef.current?.focus());
+    switchCard(true);
   }
 
   function openWaitlist() {
-    setShowInvite(false);
+    switchCard(false);
   }
 
   const joined = joinState === "ok";
-  const unlocked = codeState === "ok";
+
+  useEffect(() => {
+    if (!showInvite || joinState === "ok") return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        switchCard(false);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showInvite, joinState, switchCard]);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background">
@@ -355,49 +429,52 @@ export default function WaitlistPage() {
         <div className="waitlist-vignette absolute inset-0" aria-hidden />
 
         <div className="relative z-30 flex min-h-screen flex-col items-center justify-center px-6 py-24">
-          <h1 className="text-center text-[clamp(28px,5vw,40px)] leading-[1.08] font-extrabold tracking-[-0.03em]">
-            <span className="block">Chain every API call.</span>
-            <span className="block whitespace-nowrap">
-              Watch the whole flow <span className="text-accent">run.</span>
-            </span>
-          </h1>
-          <p className="mt-4 max-w-[52ch] text-center text-[15px] leading-relaxed text-muted">
-            A visual, node based editor for building API workflows
-          </p>
+          <div className="waitlist-hero-enter flex w-full max-w-[790px] flex-col items-center">
+            <h1 className="waitlist-headline max-w-[790px] text-center text-[clamp(26px,5vw,40px)] font-extrabold">
+              <span className="block">Visual API workflows.</span>
+              <span className="block">
+                Watch the entire flow <span className="text-accent">run.</span>
+              </span>
+            </h1>
+            <p className="waitlist-subheading mt-10 max-w-[52ch] text-center text-[16px] leading-relaxed">
+              Build, run and debug API workflows in one visual canvas.
+            </p>
 
+            <div className="waitlist-card-enter mt-10 flex w-full justify-center">
+              <div
+                className={`waitlist-card-switch flex w-full justify-center ${cardVisible ? "is-visible" : "is-exiting"}`}
+              >
           {showInvite ? (
             <HeroCardGlow>
             <form
               onSubmit={enterBeta}
-              className={`workflow-node workflow-node--selected relative flex w-full flex-col gap-2 rounded-[20px] p-2 ${
+              className={`waitlist-card workflow-node workflow-node--selected relative flex w-full flex-col gap-2 rounded-[20px] p-2 ${
                 codeState === "running" ? "node-running motion-reduce:animate-none" : ""
-              }`}
+              } ${codeState === "ok" ? "waitlist-card--validated" : ""}`}
+              aria-busy={codeState === "running"}
             >
               <HeroTitleRow
-                hue={unlocked ? "var(--success)" : "var(--accent)"}
-                title="Beta access"
+                hue={codeState === "ok" ? "var(--success)" : "var(--accent)"}
+                title="Access Beta"
                 step="1"
-                icon={
-                  <svg className="h-3.5 w-3.5 flex-none" viewBox="0 0 16 16" aria-hidden>
-                    {unlocked ? (
-                      <path
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M3 8.4 6.2 11.6 13 4.8"
-                      />
-                    ) : (
-                      <path
-                        fill="currentColor"
-                        d="M8 1.5A3.5 3.5 0 0 0 4.5 5v1.5H4A1.5 1.5 0 0 0 2.5 8v4.5A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5V8A1.5 1.5 0 0 0 12 6.5h-.5V5A3.5 3.5 0 0 0 8 1.5Zm2 5H6V5a2 2 0 1 1 4 0v1.5Z"
-                      />
-                    )}
-                  </svg>
-                }
               />
-              <div className="flex items-center gap-2 rounded-xl border border-white/12 bg-foreground/[0.03] p-1.5 pl-3">
+              {codeState === "ok" ? (
+                <div className="waitlist-input-row waitlist-input-row--success flex items-center gap-2 rounded-xl border bg-foreground/[0.03] p-1.5 pl-3">
+                  <HeroMethodTag method="GET" hue="var(--success)" />
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs uppercase text-foreground">
+                    {passcode}
+                  </span>
+                  <span className="inline-flex h-9 flex-none items-center gap-1 rounded-lg border border-success/30 bg-success/10 px-3 font-mono text-[11px] font-bold text-success">
+                    <Check size={12} strokeWidth={2.5} aria-hidden />
+                    OK
+                  </span>
+                </div>
+              ) : (
+              <div
+                className={`waitlist-input-row flex items-center gap-2 rounded-xl border border-white/12 bg-foreground/[0.03] p-1.5 pl-3 ${
+                  codeState === "failed" ? "waitlist-input-row--error" : ""
+                }`}
+              >
                 <HeroMethodTag method="GET" hue="var(--success)" />
                 <label htmlFor={inviteInputId} className="sr-only">
                   Invite code
@@ -405,117 +482,206 @@ export default function WaitlistPage() {
                 <input
                   ref={inviteRef}
                   id={inviteInputId}
-                  type="password"
+                  type="text"
                   required
-                  placeholder="Invite code"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="ORQLY-9XK2-P7LM"
                   value={passcode}
                   onChange={(e) => {
-                    setPasscode(e.target.value);
+                    setPasscode(e.target.value.toUpperCase());
                     if (codeState === "failed") setCodeState("ready");
                   }}
-                  disabled={unlocked}
-                  className="h-8 w-full min-w-0 flex-1 bg-transparent font-mono text-xs text-foreground outline-none placeholder:font-sans placeholder:text-[13px] placeholder:text-faint"
+                  disabled={codeState === "running"}
+                  aria-invalid={codeState === "failed"}
+                  aria-describedby={codeError ? "invite-code-error" : undefined}
+                  className="waitlist-email-field h-8 w-full min-w-0 flex-1 bg-transparent font-mono text-xs uppercase text-foreground outline-none placeholder:font-sans placeholder:text-[13px] placeholder:text-muted/80"
                 />
                 <button
                   type="submit"
-                  disabled={codeState === "running" || unlocked}
-                  className="flex h-8 flex-none cursor-pointer items-center rounded-lg border border-white/15 bg-foreground/5 px-3 text-[13.5px] font-medium text-foreground transition hover:bg-foreground/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+                  disabled={codeState === "running"}
+                  className="waitlist-join-btn flex h-9 min-w-[4.5rem] flex-none cursor-pointer items-center justify-center rounded-lg bg-accent px-4 text-[13.5px] font-semibold text-on-accent disabled:opacity-60"
                 >
-                  Run
+                  {codeState === "running" ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden />
+                      <span className="sr-only">Validating invite</span>
+                    </>
+                  ) : (
+                    "Run"
+                  )}
                 </button>
               </div>
-              <StatusChip
-                state={codeState === "locked" ? "ready" : codeState}
-                labels={{ ok: "OK · redirecting" }}
-                detail={
-                  codeState === "failed"
-                    ? codeError
-                    : unlocked
-                      ? "Welcome in."
-                      : null
-                }
-              />
+              )}
+              <div className="waitlist-response-slot" aria-live="polite">
+                {codeState === "failed" && codeError && (
+                  <div id="invite-code-error">
+                    <ApiErrorBlock error={codeError} />
+                  </div>
+                )}
+                {codeState === "ok" && (
+                  <div id="invite-code-success">
+                    <ApiSuccessBlock passcode={passcode} />
+                  </div>
+                )}
+                {codeState === "running" && (
+                  <p className="waitlist-response-panel text-xs text-muted">Validating invite…</p>
+                )}
+              </div>
             </form>
             </HeroCardGlow>
           ) : (
             <HeroCardGlow>
             <form
               onSubmit={joinWaitlist}
-              className={`workflow-node workflow-node--selected relative flex w-full flex-col gap-2 rounded-[20px] p-2 ${
+              className={`waitlist-card workflow-node workflow-node--selected relative flex w-full flex-col gap-2 rounded-[20px] p-2 ${
                 joinState === "running" ? "node-running motion-reduce:animate-none" : ""
+              } ${joinState === "failed" ? "waitlist-card--error" : ""} ${
+                joinState === "ok" ? "waitlist-card--validated" : ""
               }`}
+              aria-busy={joinState === "running"}
             >
-              <HeroTitleRow hue="var(--accent)" title="Join waitlist" step="1" />
-              <div className="flex items-center gap-2 rounded-xl border border-white/12 bg-foreground/[0.03] p-1.5 pl-3">
-                <HeroMethodTag method="POST" hue="var(--accent)" />
-                {joined ? (
+              <HeroTitleRow
+                hue={joinState === "ok" ? "var(--success)" : "var(--accent)"}
+                title="Join waitlist"
+                step="1"
+              />
+              {joinState === "ok" ? (
+                <div className="waitlist-input-row waitlist-input-row--success flex items-center gap-2 rounded-xl border bg-foreground/[0.03] p-1.5 pl-3">
+                  <HeroMethodTag method="POST" hue="var(--accent)" />
                   <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">
                     {email}
                   </span>
-                ) : (
-                  <>
-                    <label htmlFor="waitlist-email" className="sr-only">
-                      Email
-                    </label>
-                    <input
-                      id="waitlist-email"
-                      type="email"
-                      required
-                      autoFocus
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (joinState === "failed") setJoinState("ready");
-                      }}
-                      className="h-8 w-full min-w-0 flex-1 bg-transparent font-mono text-xs text-foreground outline-none placeholder:font-sans placeholder:text-[13px] placeholder:text-faint"
-                    />
-                    <button
-                      type="submit"
-                      disabled={joinState === "running"}
-                      className="flex h-8 flex-none cursor-pointer items-center rounded-lg bg-accent px-3 text-[13.5px] font-medium text-on-accent transition hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-                    >
-                      Join
-                    </button>
-                  </>
+                  <span className="inline-flex h-9 flex-none items-center gap-1 rounded-lg border border-success/30 bg-success/10 px-3 font-mono text-[11px] font-bold text-success">
+                    <Check size={12} strokeWidth={2.5} aria-hidden />
+                    OK
+                  </span>
+                </div>
+              ) : (
+              <div
+                className={`waitlist-input-row flex items-center gap-2 rounded-xl border border-white/12 bg-foreground/[0.03] p-1.5 pl-3 ${
+                  joinState === "failed" ? "waitlist-input-row--error" : ""
+                }`}
+              >
+                <HeroMethodTag method="POST" hue="var(--accent)" />
+                <label htmlFor="waitlist-email" className="sr-only">
+                  Email address
+                </label>
+                <input
+                  id="waitlist-email"
+                  type="email"
+                  required
+                  autoFocus={!showInvite}
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (joinState === "failed") setJoinState("ready");
+                  }}
+                  disabled={joinState === "running"}
+                  aria-invalid={joinState === "failed"}
+                  aria-describedby={joinError ? "waitlist-email-error" : undefined}
+                  className="waitlist-email-field h-8 w-full min-w-0 flex-1 bg-transparent font-mono text-xs text-foreground outline-none placeholder:font-sans placeholder:text-[13px] placeholder:text-muted/80"
+                />
+                <button
+                  type="submit"
+                  disabled={joinState === "running"}
+                  className="waitlist-join-btn flex h-9 min-w-[4.5rem] flex-none cursor-pointer items-center justify-center rounded-lg bg-accent px-4 text-[13.5px] font-semibold text-on-accent disabled:opacity-60"
+                >
+                  {joinState === "running" ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden />
+                      <span className="sr-only">Joining waitlist</span>
+                    </>
+                  ) : (
+                    "Join"
+                  )}
+                </button>
+              </div>
+              )}
+              <div className="waitlist-response-slot" aria-live="polite">
+                {joinState === "failed" && joinError && (
+                  <p
+                    id="waitlist-email-error"
+                    className="waitlist-response-panel text-danger"
+                    role="alert"
+                  >
+                    {joinError}
+                  </p>
+                )}
+                {joinState === "ok" && (
+                  <div id="waitlist-email-success">
+                    <WaitlistSuccessBlock email={email} />
+                  </div>
+                )}
+                {joinState === "running" && (
+                  <p className="waitlist-response-panel text-xs text-muted">Joining waitlist…</p>
                 )}
               </div>
-              <StatusChip
-                state={joinState}
-                labels={{ ok: "OK · 201" }}
-                detail={
-                  joinState === "failed"
-                    ? joinError
-                    : joined
-                      ? "You're on the list — invite by email."
-                      : null
-                }
-              />
             </form>
             </HeroCardGlow>
           )}
+              </div>
+            </div>
 
-          <button
-            type="button"
-            onClick={showInvite ? openWaitlist : openInvite}
-            className="group mt-3 cursor-pointer border-none bg-transparent text-[12.5px] font-medium text-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-          >
-            {showInvite ? (
-              <>
-                Need an invite?{" "}
-                <span className="text-accent transition-colors group-hover:text-accent-strong">
-                  Join the waitlist →
-                </span>
-              </>
-            ) : (
-              <>
-                Have an invite code?{" "}
-                <span className="text-accent transition-colors group-hover:text-accent-strong">
-                  Run straight in →
-                </span>
-              </>
+            {!joined && (
+              <ul
+                className="waitlist-trust-row mt-10 flex flex-wrap items-center justify-center gap-y-2 text-[12px] leading-none"
+                aria-label="Waitlist benefits"
+              >
+                {TRUST_ITEMS.map((item, index) => (
+                  <li key={item} className="inline-flex items-center">
+                    {index > 0 && (
+                      <span className="waitlist-trust-sep px-3" aria-hidden>
+                        ·
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1">
+                      <Check
+                        size={13}
+                        strokeWidth={2.5}
+                        className="shrink-0 text-success"
+                        aria-hidden
+                      />
+                      {item}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
-          </button>
+
+            {!joined && (
+            <button
+              type="button"
+              onClick={showInvite ? openWaitlist : openInvite}
+              className="group mt-8 cursor-pointer border-none bg-transparent text-[11px] text-faint focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            >
+              {showInvite ? (
+                <>
+                  Don&apos;t have an invite?{" "}
+                  <span className="text-muted underline-offset-2 transition-[color,text-decoration-color] duration-200 group-hover:text-accent group-hover:underline">
+                    Join the waitlist
+                    <span className="waitlist-invite-arrow" aria-hidden>
+                      {" "}
+                      →
+                    </span>
+                  </span>
+                </>
+              ) : (
+                <>
+                  Already have an invite?{" "}
+                  <span className="text-muted underline-offset-2 transition-[color,text-decoration-color] duration-200 group-hover:text-accent group-hover:underline">
+                    Skip the waitlist
+                    <span className="waitlist-invite-arrow" aria-hidden>
+                      {" "}
+                      →
+                    </span>
+                  </span>
+                </>
+              )}
+            </button>
+            )}
+          </div>
         </div>
       </div>
     </main>
