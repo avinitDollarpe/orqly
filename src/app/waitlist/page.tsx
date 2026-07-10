@@ -59,58 +59,47 @@ const edgeStroke = (state: EdgeState) =>
       ? "var(--accent)"
       : "color-mix(in srgb, var(--foreground) 22%, var(--border-strong))";
 
-const edgeDash = (state: EdgeState) =>
-  state === "running" ? "6 4" : undefined;
-
-const edgeAnim = (state: EdgeState) =>
-  state === "running"
-    ? "animate-[edge-dash_0.5s_linear_infinite] motion-reduce:animate-none"
-    : undefined;
+/** Connection-point dot, same anatomy as canvas handles. */
+function Dot({ state, className = "" }: { state: EdgeState; className?: string }) {
+  return (
+    <span
+      className={`absolute z-10 h-[7px] w-[7px] rounded-full border-[1.5px] bg-surface ${className}`}
+      style={{
+        borderColor: state === "idle" ? "var(--border-strong)" : edgeStroke(state),
+      }}
+    />
+  );
+}
 
 /**
- * Start fans out to both branches — the canvas's own smoothstep fork.
- * Desktop only; mobile stacks the branches with plain vertical edges.
+ * Start fans out to both branches — smoothstep fork drawn with borders so
+ * the elbows stay crisp at any width. Desktop only; mobile stacks the
+ * branches with plain vertical edges.
  */
 function ForkEdges({ left, right }: { left: EdgeState; right: EdgeState }) {
+  const stub = left !== "idle" ? left : right;
+  const half = (state: EdgeState, side: "l" | "r") => (
+    <span
+      className={`absolute top-[14px] bottom-0 ${
+        side === "l"
+          ? "left-1/4 right-1/2 rounded-tl-[10px] border-t-[1.75px] border-l-[1.75px]"
+          : "left-1/2 right-1/4 rounded-tr-[10px] border-t-[1.75px] border-r-[1.75px]"
+      }`}
+      style={{ borderColor: edgeStroke(state) }}
+    />
+  );
   return (
-    <svg
-      viewBox="0 0 400 44"
-      className="hidden h-11 w-full sm:block"
-      preserveAspectRatio="none"
-      aria-hidden
-    >
-      <path
-        d="M200 2 V14 Q200 20 194 20 H106 Q100 20 100 26 V42"
-        fill="none"
-        stroke={edgeStroke(left)}
-        strokeWidth={left === "idle" ? 1.75 : 2}
-        strokeDasharray={edgeDash(left)}
-        className={edgeAnim(left)}
+    <div className="relative hidden h-12 w-full sm:block" aria-hidden>
+      <span
+        className="absolute top-0 left-1/2 h-[15px] w-[1.75px] -translate-x-1/2"
+        style={{ background: edgeStroke(stub) }}
       />
-      <path
-        d="M200 2 V14 Q200 20 206 20 H294 Q300 20 300 26 V42"
-        fill="none"
-        stroke={edgeStroke(right)}
-        strokeWidth={right === "idle" ? 1.75 : 2}
-        strokeDasharray={edgeDash(right)}
-        className={edgeAnim(right)}
-      />
-      {[
-        [200, 3, left === "idle" && right === "idle" ? "idle" : left !== "idle" ? left : right],
-        [100, 41, left],
-        [300, 41, right],
-      ].map(([x, y, s], i) => (
-        <circle
-          key={i}
-          cx={x as number}
-          cy={y as number}
-          r="3"
-          fill="var(--surface)"
-          stroke={s === "idle" ? "var(--border-strong)" : edgeStroke(s as EdgeState)}
-          strokeWidth="1.5"
-        />
-      ))}
-    </svg>
+      {half(left, "l")}
+      {half(right, "r")}
+      <Dot state={stub} className="top-0 left-1/2 -translate-x-1/2" />
+      <Dot state={left} className="bottom-0 left-1/4 -translate-x-1/2 translate-y-1/2" />
+      <Dot state={right} className="bottom-0 left-3/4 -translate-x-1/2 translate-y-1/2" />
+    </div>
   );
 }
 
@@ -253,7 +242,7 @@ export default function WaitlistPage() {
   const unlocked = codeState === "ok";
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center overflow-hidden bg-background px-6 py-10">
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-6 py-10">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(rgb(208_219_218/0.14)_1.2px,transparent_1.2px)] bg-[size:22px_22px]"
@@ -263,9 +252,9 @@ export default function WaitlistPage() {
         className="bg-pulse pointer-events-none absolute inset-0 bg-[radial-gradient(60%_55%_at_50%_30%,rgb(255_90_25/0.13),transparent_70%)]"
       />
 
-      <div className="relative flex w-full max-w-[420px] flex-1 flex-col items-center sm:max-w-[720px]">
-        {/* masthead */}
-        <div className="flex w-full items-center justify-between">
+      <div className="relative flex w-full max-w-[420px] flex-col items-center py-4 sm:max-w-[720px]">
+        {/* masthead — one centered axis with the diagram below */}
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-accent font-mono text-[19px] leading-none font-bold text-on-accent">
               ⌘
@@ -279,19 +268,18 @@ export default function WaitlistPage() {
         </div>
 
         {/* thesis */}
-        <h1 className="mt-10 w-full text-[clamp(26px,6vw,34px)] leading-[1.12] font-extrabold tracking-[-0.03em] text-balance">
+        <h1 className="mt-8 text-center text-[clamp(26px,5vw,40px)] leading-[1.1] font-extrabold tracking-[-0.03em] text-balance">
           Chain every API call.
-          <br />
-          Watch the whole flow run.
+          <br className="hidden sm:block" /> Watch the whole flow run.
         </h1>
-        <p className="mt-3 w-full max-w-[52ch] self-start text-[14px] leading-relaxed text-muted">
-          Orqly is a node-based editor for API workflows — every response feeds
-          the next request. Two branches from Start: queue for an invite, or
-          run straight in with a code.
+        <p className="mt-4 max-w-[46ch] text-center text-[14px] leading-relaxed text-muted">
+          Orqly is a node-based editor for API workflows — every response
+          feeds the next request. Two branches from Start: queue for an
+          invite, or run straight in with a code.
         </p>
 
         {/* the forked workflow: Start fans out to both branches (level 1) */}
-        <div className="mt-8 flex w-full flex-col items-center">
+        <div className="mt-10 flex w-full flex-col items-center">
           {/* Start */}
           <div className="workflow-node flex w-full max-w-[340px] flex-col gap-2 rounded-[20px] p-2">
             <NodeTitleRow
@@ -459,10 +447,6 @@ export default function WaitlistPage() {
           </form>
           </div>
         </div>
-
-        <p className="mt-auto pt-10 font-mono text-[10px] tracking-[0.14em] text-faint uppercase">
-          Build · test · simulate API workflows
-        </p>
       </div>
     </main>
   );
