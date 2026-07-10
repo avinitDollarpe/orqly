@@ -112,6 +112,43 @@ export function Modal({
   );
 }
 
+/** beui.dev "Dot Matrix" loader — 3×3 dots, diagonal wave. Colors via currentColor. */
+// ponytail: CSS-only port of the beui variant; grab their full component if more variants needed
+export function DotMatrixLoader({
+  size = 32,
+  label = "Loading",
+  className = "",
+}: {
+  size?: number;
+  label?: string;
+  className?: string;
+}) {
+  const gap = size * 0.14;
+  const dot = (size - gap * 2) / 3;
+  return (
+    <span
+      role="status"
+      aria-label={label}
+      className={`inline-grid ${className}`}
+      style={{ gap, gridTemplateColumns: `repeat(3, ${dot}px)` }}
+    >
+      {Array.from({ length: 9 }, (_, i) => (
+        <span
+          key={i}
+          className="dot-matrix-cell rounded-full bg-current"
+          style={{
+            width: dot,
+            height: dot,
+            // Diagonal wave: delay grows with distance from top-left corner.
+            animationDelay: `${(((i % 3) + Math.floor(i / 3)) / 4).toFixed(3)}s`,
+          }}
+        />
+      ))}
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+
 export const inputCls = "inspector-field";
 
 export const btnGhost =

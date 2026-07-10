@@ -335,6 +335,37 @@ body {
   animation: bg-pulse 9s ease-in-out infinite alternate;
 }
 
+/* Dot-matrix loader — 3×3 grid, diagonal wave (beui.dev dot-matrix) */
+@keyframes dot-matrix {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.dot-matrix-cell {
+  animation: dot-matrix 1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dot-matrix-cell {
+    /* calm opacity pulse, no transform */
+    animation-name: dot-matrix-reduced;
+  }
+  @keyframes dot-matrix-reduced {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+}
+
 @keyframes pulse-ring {
   0%,
   100% {
