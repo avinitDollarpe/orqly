@@ -5,12 +5,23 @@ import { BETA_COOKIE, betaCookieValue, betaGateEnabled } from "@/lib/beta";
  * Private-beta wall: with BETA_PASSCODE set, every route — pages and APIs —
  * requires the signed beta cookie. Only the waitlist page and its API are
  * public, so no deep link lands past the wall.
+ *
+ * Better Auth Infrastructure calls /api/auth/dash/* with a JWT (no cookie) when
+ * you connect or update a project in their dashboard — those routes stay open.
  */
+function isBetaPublicPath(pathname: string): boolean {
+  if (pathname === "/waitlist" || pathname === "/api/waitlist") return true;
+  if (pathname === "/api/auth/dash" || pathname.startsWith("/api/auth/dash/")) {
+    return true;
+  }
+  return false;
+}
+
 export async function proxy(request: NextRequest) {
   if (!betaGateEnabled()) return NextResponse.next();
 
   const { pathname } = request.nextUrl;
-  if (pathname === "/waitlist" || pathname === "/api/waitlist") {
+  if (isBetaPublicPath(pathname)) {
     return NextResponse.next();
   }
 
