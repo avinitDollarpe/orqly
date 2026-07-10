@@ -8,6 +8,7 @@ import { FlowCanvas } from "@/components/canvas/FlowCanvas";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { DotMatrixLoader } from "@/components/shared/ui";
 import { useStore } from "@/lib/store";
 
 const Inspector = dynamic(
@@ -63,8 +64,9 @@ export function Builder({
 
   if (!hydrated) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background text-sm text-muted">
-        <span className="animate-pulse motion-reduce:animate-none">Loading your workspace…</span>
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background text-sm text-muted">
+        <DotMatrixLoader size={28} label="Loading your workspace" className="text-accent" />
+        <span aria-hidden>Loading your workspace…</span>
       </div>
     );
   }
