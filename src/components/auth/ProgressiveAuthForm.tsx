@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
-type Step = "signin" | "signin-email" | "otp" | "passkey";
+type Step = "signin" | "signin-email" | "otp";
 
 /* Class strings mirror card-compare.html option C exactly:
    .btn  → 9px/12px padding, 8px radius, 13.5px/500, 8px gap
@@ -18,7 +18,7 @@ const btnGitHub = `${btn} border border-white/18 bg-[#1f1f1f] text-white hover:b
 const input =
   "mb-2.5 w-full rounded-lg border border-white/15 bg-foreground/5 px-2.5 py-2 text-[13px] text-foreground placeholder:text-faint outline-none focus:border-accent focus:shadow-[0_0_0_1px_var(--accent)]";
 const textlink =
-  "mt-3.5 block w-full cursor-pointer text-center text-[12.5px] text-muted";
+  "mt-3.5 block w-full cursor-pointer rounded-md text-center text-[12.5px] text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 const providerRow = "flex w-[166px] items-center gap-2 text-left";
 
 function Spinner() {
@@ -75,17 +75,6 @@ function MailIcon() {
   );
 }
 
-function KeyIcon() {
-  return (
-    <svg className="h-[26px] w-[26px] text-accent" viewBox="0 0 16 16" aria-hidden>
-      <path
-        fill="currentColor"
-        d="M10.5 1a4.5 4.5 0 0 0-4.34 5.7L1 11.86V15h3.14l.86-.86v-1.28h1.28l.86-.86v-1.28h1.28l.44-.44A4.5 4.5 0 1 0 10.5 1zm1.5 4.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"
-      />
-    </svg>
-  );
-}
-
 function OtpInputs({
   value,
   onChange,
@@ -100,6 +89,10 @@ function OtpInputs({
     const next = digits.map((d, i) => (i === index ? char : d.trim())).join("");
     onChange(next.replace(/\s/g, "").slice(0, 6));
   }
+
+  useEffect(() => {
+    refs.current[0]?.focus();
+  }, []);
 
   return (
     <div className="mt-1.5 mb-3.5 flex gap-2">
@@ -151,6 +144,7 @@ export function ProgressiveAuthForm({
   const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const [redirecting, setRedirecting] = useState<"github" | "google" | null>(
     null,
   );
@@ -163,29 +157,13 @@ export function ProgressiveAuthForm({
     return () => window.removeEventListener("pageshow", reset);
   }, []);
 
+  // resend countdown — mirrors the server's send rate limit so users see a
+  // timer instead of a raw "too many requests" error
   useEffect(() => {
-    if (step !== "passkey") return;
-    let cancelled = false;
-
-    async function signInWithPasskey() {
-      setBusy(true);
-      setError(null);
-      const res = await authClient.signIn.passkey();
-      if (cancelled) return;
-      setBusy(false);
-      if (res.error) {
-        setError(res.error.message ?? "Passkey sign-in failed");
-      } else {
-        router.push("/");
-        router.refresh();
-      }
-    }
-
-    void signInWithPasskey();
-    return () => {
-      cancelled = true;
-    };
-  }, [step, router]);
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   async function sendCode() {
     setBusy(true);
@@ -199,6 +177,7 @@ export function ProgressiveAuthForm({
       setError(res.error.message ?? "Could not send code");
     } else {
       setOtp("");
+      setCooldown(30);
       setStep("otp");
     }
   }
@@ -306,42 +285,36 @@ export function ProgressiveAuthForm({
                   </span>
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  setStep("passkey");
-                }}
-                className={textlink}
-              >
-                Have a passkey?
-                <b className="ml-2 font-medium text-accent">Use it instead</b>
-              </button>
             </>
           )}
 
           {step === "signin-email" && (
-            <>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void sendCode();
+              }}
+            >
               <h1 className="mb-1 text-[16px] font-bold leading-[18px]">
                 Continue with email
               </h1>
-              <p className={sub}>We&apos;ll send you a one time code.</p>
+              <p className={sub}>We&apos;ll send you a one-time code.</p>
+              <label htmlFor="auth-email" className="sr-only">
+                Email address
+              </label>
               <input
+                id="auth-email"
                 className={input}
                 type="email"
-                placeholder="Email"
+                placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoFocus
                 required
+                autoComplete="email"
               />
               {error && <p className="mb-2.5 text-sm text-danger">{error}</p>}
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void sendCode()}
-                className={btnPrimary}
-              >
+              <button type="submit" disabled={busy} className={btnPrimary}>
                 {busy && <Spinner />}
                 {busy ? "Sending…" : "Send code"}
               </button>
@@ -355,14 +328,19 @@ export function ProgressiveAuthForm({
               >
                 <b className="font-medium text-accent">← All options</b>
               </button>
-            </>
+            </form>
           )}
 
           {step === "otp" && (
-            <>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void verifyOtp();
+              }}
+            >
               <h1 className="mb-1 text-[16px] font-bold leading-[18px]">Check your email</h1>
               <p className={sub}>
-                Enter the 6 digit code we sent to{" "}
+                Enter the 6-digit code we sent to{" "}
                 <b className="font-medium text-foreground">{email}</b>
               </p>
               <OtpInputs
@@ -374,12 +352,7 @@ export function ProgressiveAuthForm({
                 }}
               />
               {error && <p className="mb-2.5 text-sm text-danger">{error}</p>}
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void verifyOtp()}
-                className={btnPrimary}
-              >
+              <button type="submit" disabled={busy} className={btnPrimary}>
                 {busy && <Spinner />}
                 {busy ? "Verifying…" : "Verify"}
               </button>
@@ -387,11 +360,11 @@ export function ProgressiveAuthForm({
                 Didn&apos;t get it?
                 <button
                   type="button"
-                  disabled={busy}
+                  disabled={busy || cooldown > 0}
                   onClick={() => void sendCode()}
-                  className="ml-2 font-medium text-accent disabled:opacity-50"
+                  className="rounded-sm font-medium text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
                 >
-                  Resend code
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
                 </button>
               </p>
               <button
@@ -405,39 +378,7 @@ export function ProgressiveAuthForm({
               >
                 <b className="font-medium text-accent">← Use a different email</b>
               </button>
-            </>
-          )}
-
-          {step === "passkey" && (
-            <>
-              <h1 className="mb-1 text-[16px] font-bold leading-[18px]">Use your passkey</h1>
-              <p className={sub}>
-                Your browser will prompt for Touch&nbsp;ID, Face&nbsp;ID or a
-                security key.
-              </p>
-              <div className="flex items-center justify-center pt-[22px] pb-[26px]">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border-[1.5px] border-accent/60 animate-[bg-pulse_1.6s_ease-in-out_infinite_alternate]">
-                  <KeyIcon />
-                </div>
-              </div>
-              <p className="mb-3.5 text-center text-[13px] text-muted">
-                Waiting for your device…
-              </p>
-              {error && (
-                <p className="mb-2.5 text-center text-sm text-danger">{error}</p>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  setBusy(false);
-                  setStep("signin");
-                }}
-                className={btnGhost}
-              >
-                Cancel
-              </button>
-            </>
+            </form>
           )}
           </div>
         </div>

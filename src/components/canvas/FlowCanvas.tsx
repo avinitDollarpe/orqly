@@ -10,6 +10,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { ApiNode } from "@/components/canvas/ApiNode";
 import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
 import { StartNode } from "@/components/canvas/StartNode";
@@ -19,16 +20,31 @@ const nodeTypes = { api: ApiNode, start: StartNode };
 
 export function FlowCanvas() {
   const workflow = useActiveWorkflow();
-  const onNodesChange = useStore((s) => s.onNodesChange);
-  const onEdgesChange = useStore((s) => s.onEdgesChange);
-  const onConnect = useStore((s) => s.onConnect);
-  const onNodeDragStart = useStore((s) => s.onNodeDragStart);
-  const addNode = useStore((s) => s.addNode);
-  const selectNode = useStore((s) => s.selectNode);
-  const undo = useStore((s) => s.undo);
-  const redo = useStore((s) => s.redo);
-  const runningEdgeId = useStore((s) => s.runningEdgeId);
-  const doneEdgeIds = useStore((s) => s.doneEdgeIds);
+  const {
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    onNodeDragStart,
+    addNode,
+    selectNode,
+    undo,
+    redo,
+    runningEdgeId,
+    doneEdgeIds,
+  } = useStore(
+    useShallow((s) => ({
+      onNodesChange: s.onNodesChange,
+      onEdgesChange: s.onEdgesChange,
+      onConnect: s.onConnect,
+      onNodeDragStart: s.onNodeDragStart,
+      addNode: s.addNode,
+      selectNode: s.selectNode,
+      undo: s.undo,
+      redo: s.redo,
+      runningEdgeId: s.runningEdgeId,
+      doneEdgeIds: s.doneEdgeIds,
+    })),
+  );
   const { fitView } = useReactFlow();
 
   // Re-center when switching to (or creating) another workflow, otherwise the

@@ -3,8 +3,11 @@
 import { useMemo, useState } from "react";
 import { flattenPaths } from "@/lib/interpolate";
 import { useActiveWorkflow, useStore } from "@/lib/store";
+import type { NodeRun } from "@/lib/types";
 
 type Item = { template: string; preview: string; group: string };
+
+const EMPTY_RUNS: Record<string, NodeRun | undefined> = {};
 
 /** Node ids that can feed data into `nodeId` (its ancestors). */
 function ancestorIds(
@@ -37,9 +40,11 @@ export function VariablePicker({
   const workflow = useActiveWorkflow();
   const environments = useStore((s) => s.environments);
   const activeEnvId = useStore((s) => s.activeEnvId);
-  const runs = useStore((s) => s.runs);
+  // Stable snapshot when closed — avoids re-renders on every run tick; full runs only when open.
+  const runs = useStore((s) => (open ? s.runs : EMPTY_RUNS));
 
   const items: Item[] = useMemo(() => {
+    if (!open) return [];
     const out: Item[] = [];
     const env = environments.find((e) => e.id === activeEnvId);
     for (const v of env?.vars ?? []) {
@@ -73,7 +78,7 @@ export function VariablePicker({
       }
     }
     return out;
-  }, [environments, activeEnvId, workflow, nodeId, runs]);
+  }, [open, environments, activeEnvId, workflow, nodeId, runs]);
 
   const filtered = items.filter((i) =>
     i.template.toLowerCase().includes(query.toLowerCase()),
@@ -97,6 +102,7 @@ export function VariablePicker({
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
               placeholder="Search variables…"
               className="w-full rounded-t-xl border-b border-line bg-transparent px-3 py-2 text-xs outline-none placeholder:text-faint"
             />

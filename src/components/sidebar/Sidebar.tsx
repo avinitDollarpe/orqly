@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useShallow } from "zustand/react/shallow";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { JsonTextarea } from "@/components/shared/JsonTextarea";
 import { KVTable } from "@/components/shared/KVTable";
 import { btnGhost, inputCls, Modal } from "@/components/shared/ui";
@@ -12,6 +14,27 @@ type EditorTarget =
   | { kind: "headerSet"; id: string }
   | { kind: "environment"; id: string }
   | { kind: "preRequest" };
+
+type DeleteTarget = {
+  kind: "body" | "headerSet" | "environment";
+  id: string;
+  name: string;
+};
+
+const DELETE_COPY: Record<DeleteTarget["kind"], { title: string; note: string }> = {
+  body: {
+    title: "Delete request body?",
+    note: "Nodes using it will show a missing-body warning until you pick another.",
+  },
+  headerSet: {
+    title: "Delete header set?",
+    note: "Workflows using it fall back to no shared headers.",
+  },
+  environment: {
+    title: "Delete environment?",
+    note: "Its variables stop resolving in {{env.…}} templates.",
+  },
+};
 
 function Section({
   title,
@@ -32,7 +55,7 @@ function Section({
       <div className="group/head flex items-center justify-between pr-2 pl-4">
         <button
           onClick={() => setOpen((o) => !o)}
-          className="flex cursor-pointer items-center gap-1.5 py-1 font-mono text-[10px] font-bold tracking-[0.14em] text-foreground uppercase transition hover:text-muted"
+          className="flex cursor-pointer items-center gap-1.5 rounded-md py-1 font-mono text-[10px] font-bold tracking-[0.14em] text-foreground uppercase transition hover:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <svg
             className={`h-2 w-2 transition-transform ${open ? "rotate-90" : ""}`}
@@ -53,7 +76,7 @@ function Section({
         </button>
         <button
           onClick={onAdd}
-          className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-md text-faint opacity-0 transition group-hover/head:opacity-100 hover:bg-foreground/10 hover:text-foreground focus-visible:opacity-100"
+          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-faint opacity-0 transition group-hover/head:opacity-100 hover:bg-foreground/10 hover:text-foreground focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
           title={addLabel}
           aria-label={addLabel}
         >
@@ -103,7 +126,7 @@ function Row({
       >
         {name}
       </button>
-      <span className="relative flex h-5 w-5 flex-none items-center justify-center">
+      <span className="relative flex h-9 w-9 flex-none items-center justify-center">
         {meta && (
           <span className="font-mono text-[10px] text-faint group-hover:opacity-0">
             {meta}
@@ -111,7 +134,9 @@ function Row({
         )}
         <button
           onClick={onDelete}
-          className="absolute inset-0 hidden cursor-pointer items-center justify-center rounded text-faint group-hover:flex hover:text-danger"
+          // opacity (not display) so the button stays keyboard-focusable;
+          // pointer-events gate stops invisible clicks over the meta count
+          className="pointer-events-none absolute inset-0 flex cursor-pointer items-center justify-center rounded text-faint opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 hover:text-danger focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:text-danger focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
           title="Delete"
           aria-label={`Delete ${name}`}
         >
@@ -135,9 +160,41 @@ const empty = (msg: string) => (
 );
 
 export function Sidebar() {
-  const s = useStore();
+  // scoped selector — a whole-store subscribe re-rendered the sidebar on every
+  // run tick and keystroke anywhere in the app
+  const s = useStore(
+    useShallow((st) => ({
+      workflows: st.workflows,
+      savedBodies: st.savedBodies,
+      headerSets: st.headerSets,
+      environments: st.environments,
+      activeWorkflowId: st.activeWorkflowId,
+      activeEnvId: st.activeEnvId,
+      sidebarOpen: st.sidebarOpen,
+      setWizardOpen: st.setWizardOpen,
+      setActiveWorkflow: st.setActiveWorkflow,
+      setDeleteWorkflowConfirm: st.setDeleteWorkflowConfirm,
+      upsertBody: st.upsertBody,
+      deleteBody: st.deleteBody,
+      upsertHeaderSet: st.upsertHeaderSet,
+      deleteHeaderSet: st.deleteHeaderSet,
+      upsertEnvironment: st.upsertEnvironment,
+      deleteEnvironment: st.deleteEnvironment,
+      setWorkflowPreRequestScript: st.setWorkflowPreRequestScript,
+      setWorkflowPreRequestEnabled: st.setWorkflowPreRequestEnabled,
+    })),
+  );
   const [editing, setEditing] = useState<EditorTarget | null>(null);
+  const [deleting, setDeleting] = useState<DeleteTarget | null>(null);
   const uid = () => crypto.randomUUID();
+
+  function confirmDelete() {
+    if (!deleting) return;
+    if (deleting.kind === "body") s.deleteBody(deleting.id);
+    else if (deleting.kind === "headerSet") s.deleteHeaderSet(deleting.id);
+    else s.deleteEnvironment(deleting.id);
+    setDeleting(null);
+  }
 
   const editingBody =
     editing?.kind === "body"
@@ -202,7 +259,7 @@ export function Sidebar() {
               <button
                 type="button"
                 onClick={() => setEditing({ kind: "preRequest" })}
-                className="min-w-0 flex-1 cursor-pointer px-2.5 py-2 text-left font-mono text-[10px] font-bold tracking-[0.14em] text-foreground uppercase transition hover:text-muted"
+                className="min-w-0 flex-1 cursor-pointer rounded-md px-2.5 py-2 text-left font-mono text-[10px] font-bold tracking-[0.14em] text-foreground uppercase transition hover:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 Pre-request script
               </button>
@@ -217,13 +274,13 @@ export function Sidebar() {
                     activeWorkflow.preRequestEnabled === false,
                   )
                 }
-                className={`flex h-4 w-8 flex-none cursor-pointer items-center px-[1.6px] transition-colors ${
+                className={`flex h-4 w-8 flex-none cursor-pointer items-center rounded-full px-0.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                   activeWorkflow.preRequestEnabled !== false
                     ? "justify-end bg-accent"
                     : "justify-start bg-foreground/25"
                 }`}
               >
-                <span className="block h-[12.8px] w-[12.8px] bg-[#F8F8F7]" />
+                <span className="block h-3 w-3 rounded-full bg-foreground/90" />
               </button>
             </div>
             <p className="px-2.5 pt-1 text-[11px] leading-snug text-faint">
@@ -251,7 +308,7 @@ export function Sidebar() {
                 key={b.id}
                 name={b.name}
                 onClick={() => setEditing({ kind: "body", id: b.id })}
-                onDelete={() => s.deleteBody(b.id)}
+                onDelete={() => setDeleting({ kind: "body", id: b.id, name: b.name })}
               />
             ))}
           </Section>
@@ -278,7 +335,7 @@ export function Sidebar() {
                 key={h.id}
                 name={h.name}
                 onClick={() => setEditing({ kind: "headerSet", id: h.id })}
-                onDelete={() => s.deleteHeaderSet(h.id)}
+                onDelete={() => setDeleting({ kind: "headerSet", id: h.id, name: h.name })}
               />
             ))}
           </Section>
@@ -300,7 +357,7 @@ export function Sidebar() {
                 name={e.name}
                 active={e.id === s.activeEnvId}
                 onClick={() => setEditing({ kind: "environment", id: e.id })}
-                onDelete={() => s.deleteEnvironment(e.id)}
+                onDelete={() => setDeleting({ kind: "environment", id: e.id, name: e.name })}
               />
             ))}
           </Section>
@@ -405,6 +462,22 @@ export function Sidebar() {
             </div>
           </Modal>
         )}
+        <ConfirmDialog
+          open={deleting != null}
+          title={deleting ? DELETE_COPY[deleting.kind].title : ""}
+          description={
+            deleting ? (
+              <>
+                <span className="font-semibold text-foreground">{deleting.name}</span>{" "}
+                will be removed. {DELETE_COPY[deleting.kind].note}
+              </>
+            ) : null
+          }
+          cancelLabel="Keep it"
+          confirmLabel="Delete"
+          onCancel={() => setDeleting(null)}
+          onConfirm={confirmDelete}
+        />
         {editingEnv && (
           <Modal title="Edit environment" onClose={() => setEditing(null)}>
             <div className="space-y-3">
