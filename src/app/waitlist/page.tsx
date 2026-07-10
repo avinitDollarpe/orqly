@@ -50,8 +50,72 @@ function StatusChip({
   );
 }
 
+type EdgeState = "idle" | "running" | "done";
+
+const edgeStroke = (state: EdgeState) =>
+  state === "done"
+    ? "var(--success)"
+    : state === "running"
+      ? "var(--accent)"
+      : "color-mix(in srgb, var(--foreground) 22%, var(--border-strong))";
+
+const edgeDash = (state: EdgeState) =>
+  state === "running" ? "6 4" : undefined;
+
+const edgeAnim = (state: EdgeState) =>
+  state === "running"
+    ? "animate-[edge-dash_0.5s_linear_infinite] motion-reduce:animate-none"
+    : undefined;
+
+/**
+ * Start fans out to both branches — the canvas's own smoothstep fork.
+ * Desktop only; mobile stacks the branches with plain vertical edges.
+ */
+function ForkEdges({ left, right }: { left: EdgeState; right: EdgeState }) {
+  return (
+    <svg
+      viewBox="0 0 400 44"
+      className="hidden h-11 w-full sm:block"
+      preserveAspectRatio="none"
+      aria-hidden
+    >
+      <path
+        d="M200 2 V14 Q200 20 194 20 H106 Q100 20 100 26 V42"
+        fill="none"
+        stroke={edgeStroke(left)}
+        strokeWidth={left === "idle" ? 1.75 : 2}
+        strokeDasharray={edgeDash(left)}
+        className={edgeAnim(left)}
+      />
+      <path
+        d="M200 2 V14 Q200 20 206 20 H294 Q300 20 300 26 V42"
+        fill="none"
+        stroke={edgeStroke(right)}
+        strokeWidth={right === "idle" ? 1.75 : 2}
+        strokeDasharray={edgeDash(right)}
+        className={edgeAnim(right)}
+      />
+      {[
+        [200, 3, left === "idle" && right === "idle" ? "idle" : left !== "idle" ? left : right],
+        [100, 41, left],
+        [300, 41, right],
+      ].map(([x, y, s], i) => (
+        <circle
+          key={i}
+          cx={x as number}
+          cy={y as number}
+          r="3"
+          fill="var(--surface)"
+          stroke={s === "idle" ? "var(--border-strong)" : edgeStroke(s as EdgeState)}
+          strokeWidth="1.5"
+        />
+      ))}
+    </svg>
+  );
+}
+
 /** Vertical wire between nodes — same stroke grammar as canvas edges. */
-function Edge({ state }: { state: "idle" | "running" | "done" }) {
+function Edge({ state }: { state: EdgeState }) {
   const stroke =
     state === "done"
       ? "var(--success)"
@@ -199,7 +263,7 @@ export default function WaitlistPage() {
         className="bg-pulse pointer-events-none absolute inset-0 bg-[radial-gradient(60%_55%_at_50%_30%,rgb(255_90_25/0.13),transparent_70%)]"
       />
 
-      <div className="relative flex w-full max-w-[420px] flex-1 flex-col items-center">
+      <div className="relative flex w-full max-w-[420px] flex-1 flex-col items-center sm:max-w-[720px]">
         {/* masthead */}
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-2">
@@ -220,15 +284,16 @@ export default function WaitlistPage() {
           <br />
           Watch the whole flow run.
         </h1>
-        <p className="mt-3 w-full text-[14px] leading-relaxed text-muted">
+        <p className="mt-3 w-full max-w-[52ch] self-start text-[14px] leading-relaxed text-muted">
           Orqly is a node-based editor for API workflows — every response feeds
-          the next request. Your invite starts with one request too:
+          the next request. Two branches from Start: queue for an invite, or
+          run straight in with a code.
         </p>
 
-        {/* the locked workflow */}
-        <div className="mt-8 flex w-full max-w-[340px] flex-col items-center">
+        {/* the forked workflow: Start fans out to both branches (level 1) */}
+        <div className="mt-8 flex w-full flex-col items-center">
           {/* Start */}
-          <div className="workflow-node flex w-full flex-col gap-2 rounded-[20px] p-2">
+          <div className="workflow-node flex w-full max-w-[340px] flex-col gap-2 rounded-[20px] p-2">
             <NodeTitleRow
               hue="var(--success)"
               title="Start"
@@ -244,14 +309,22 @@ export default function WaitlistPage() {
             />
           </div>
 
-          <Edge
-            state={joinState === "running" ? "running" : joined ? "done" : "idle"}
+          <ForkEdges
+            left={joinState === "running" ? "running" : joined ? "done" : "idle"}
+            right={codeState === "running" ? "running" : unlocked ? "done" : "idle"}
           />
+          <div className="sm:hidden">
+            <Edge
+              state={joinState === "running" ? "running" : joined ? "done" : "idle"}
+            />
+          </div>
 
-          {/* Node 1 — the email form */}
+          <div className="grid w-full grid-cols-1 justify-items-center gap-0 sm:grid-cols-2 sm:items-start sm:gap-6">
+
+          {/* Branch A — the email form */}
           <form
             onSubmit={joinWaitlist}
-            className={`workflow-node flex w-full flex-col gap-2 rounded-[20px] p-2 ${
+            className={`workflow-node flex w-full max-w-[340px] flex-col gap-2 self-start justify-self-center rounded-[20px] p-2 ${
               joinState === "running" ? "node-running" : ""
             }`}
           >
@@ -303,21 +376,27 @@ export default function WaitlistPage() {
             />
           </form>
 
-          <Edge
-            state={codeState === "running" ? "running" : unlocked ? "done" : "idle"}
-          />
+          {/* mobile-only: the second branch stacks below with its own wire */}
+          <div className="flex flex-col items-center sm:hidden">
+            <span className="py-1 font-mono text-[10px] font-bold tracking-[0.14em] text-faint uppercase">
+              or
+            </span>
+            <Edge
+              state={codeState === "running" ? "running" : unlocked ? "done" : "idle"}
+            />
+          </div>
 
-          {/* Node 2 — locked beta access */}
+          {/* Branch B — locked beta access */}
           <form
             onSubmit={enterBeta}
-            className={`workflow-node flex w-full flex-col gap-2 rounded-[20px] p-2 transition-opacity ${
+            className={`workflow-node flex w-full max-w-[340px] flex-col gap-2 self-start justify-self-center rounded-[20px] p-2 transition-opacity ${
               codeState === "running" ? "node-running" : ""
             } ${codeState === "locked" ? "opacity-80" : ""}`}
           >
             <NodeTitleRow
               hue={unlocked ? "var(--success)" : "var(--foreground)"}
               title="Beta access"
-              step="2"
+              step="1"
               icon={
                 <svg className="h-3.5 w-3.5 flex-none" viewBox="0 0 16 16" aria-hidden>
                   {unlocked ? (
@@ -378,6 +457,7 @@ export default function WaitlistPage() {
               }
             />
           </form>
+          </div>
         </div>
 
         <p className="mt-auto pt-10 font-mono text-[10px] tracking-[0.14em] text-faint uppercase">
