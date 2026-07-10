@@ -6,7 +6,7 @@ import { JsonTextarea } from "@/components/shared/JsonTextarea";
 import { KVTable } from "@/components/shared/KVTable";
 import { MethodChip } from "@/components/shared/ui";
 import { flattenPaths } from "@/lib/interpolate";
-import { methodHue } from "@/lib/method-colors";
+import { METHOD_COLORS } from "@/lib/method-colors";
 import { nodeLevel } from "@/lib/layout";
 import { runSingleNode } from "@/lib/runner";
 import { useActiveWorkflow, useStore } from "@/lib/store";
@@ -289,7 +289,7 @@ export function Inspector() {
                   onChange={(e) => patch({ method: e.target.value as Method })}
                   className={`${fieldCls} shrink-0 cursor-pointer font-mono text-xs font-bold`}
                   /* .inspector-field's width:100% outranks Tailwind's layered w-* utility */
-                  style={{ color: methodHue(data.method).color, width: "5.5rem" }}
+                  style={{ color: METHOD_COLORS[data.method].color, width: "5.5rem" }}
                 >
                   {METHODS.map((m) => (
                     <option key={m} value={m}>

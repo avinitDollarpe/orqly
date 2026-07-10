@@ -8,13 +8,8 @@ import { authClient } from "@/lib/auth-client";
 const inputCls =
   "w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-foreground placeholder:text-faint outline-none focus:border-border-strong focus:ring-2 focus:ring-accent/10";
 
-export function AuthForm({
-  mode,
-  googleEnabled,
-}: {
-  mode: "sign-in" | "sign-up";
-  googleEnabled: boolean;
-}) {
+/** Sign-up form — sign-in lives in ProgressiveAuthForm. */
+export function AuthForm({ googleEnabled }: { googleEnabled: boolean }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -26,10 +21,7 @@ export function AuthForm({
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const res =
-      mode === "sign-up"
-        ? await authClient.signUp.email({ name, email, password })
-        : await authClient.signIn.email({ email, password });
+    const res = await authClient.signUp.email({ name, email, password });
     setBusy(false);
     if (res.error) {
       setError(res.error.message ?? "Something went wrong");
@@ -58,24 +50,18 @@ export function AuthForm({
           <span className="text-lg font-semibold tracking-tight">Orqly</span>
         </div>
         <div className="glass rounded-2xl p-6">
-          <h1 className="mb-1 text-base font-semibold">
-            {mode === "sign-up" ? "Create your account" : "Welcome back"}
-          </h1>
+          <h1 className="mb-1 text-base font-semibold">Create your account</h1>
           <p className="mb-5 text-sm text-muted">
-            {mode === "sign-up"
-              ? "Start building API workflows in minutes."
-              : "Sign in to continue to your workflows."}
+            Start building API workflows in minutes.
           </p>
           <form onSubmit={submit} className="space-y-3">
-            {mode === "sign-up" && (
-              <input
-                className={inputCls}
-                placeholder="Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            )}
+            <input
+              className={inputCls}
+              placeholder="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
             <input
               className={inputCls}
               type="email"
@@ -102,11 +88,7 @@ export function AuthForm({
               disabled={busy}
               className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent transition hover:brightness-95 disabled:opacity-50"
             >
-              {busy
-                ? "Please wait…"
-                : mode === "sign-up"
-                  ? "Create account"
-                  : "Sign in"}
+              {busy ? "Please wait…" : "Create account"}
             </button>
           </form>
           {googleEnabled && (
@@ -126,21 +108,10 @@ export function AuthForm({
           )}
         </div>
         <p className="mt-4 text-center text-sm text-muted">
-          {mode === "sign-up" ? (
-            <>
-              Already have an account?{" "}
-              <Link href="/sign-in" className="text-accent hover:underline">
-                Sign in
-              </Link>
-            </>
-          ) : (
-            <>
-              New to Orqly?{" "}
-              <Link href="/sign-up" className="text-accent hover:underline">
-                Create an account
-              </Link>
-            </>
-          )}
+          Already have an account?{" "}
+          <Link href="/sign-in" className="text-accent hover:underline">
+            Sign in
+          </Link>
         </p>
       </div>
     </main>

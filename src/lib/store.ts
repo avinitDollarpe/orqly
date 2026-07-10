@@ -22,7 +22,6 @@ import type {
   SavedBody,
   StartNode,
   Workflow,
-  WorkflowBundle,
   WorkflowNode,
 } from "@/lib/types";
 
@@ -69,8 +68,6 @@ type Store = {
   onConnect: (conn: Connection) => void;
   addNode: (opts?: {
     anchorNodeId?: string;
-    /** @deprecated use anchorNodeId */
-    afterNodeId?: string;
     placement?: NodePlacement;
     /** Prefill (imports): method, url, headers, body, label. */
     data?: Partial<ApiNodeData>;
@@ -80,13 +77,12 @@ type Store = {
   // workflows
   createWorkflow: () => void;
   /** Create a workflow pre-populated with imported API nodes (OpenAPI). */
-  createWorkflowFromNodes: (name: string, nodes: ApiNode[], edges: Edge[]) => void;
+  createWorkflowFromNodes: (name: string, nodes: ApiNode[]) => void;
   renameWorkflow: (id: string, name: string) => void;
   setWorkflowPreRequestScript: (id: string, script: string) => void;
   setWorkflowPreRequestEnabled: (id: string, enabled: boolean) => void;
   deleteWorkflow: (id: string) => void;
   setActiveWorkflow: (id: string) => void;
-  importBundle: (bundle: WorkflowBundle) => void;
 
   // saved resources
   upsertBody: (b: SavedBody) => void;
@@ -431,7 +427,6 @@ export const useStore = create<Store>((set, get) => {
         const placement = opts?.placement ?? "below";
         const anchorId =
           opts?.anchorNodeId ??
-          opts?.afterNodeId ??
           selectedNodeId ??
           wf.nodes.find((n) => n.type === "start")?.id;
         const anchorLvl =
@@ -539,7 +534,7 @@ export const useStore = create<Store>((set, get) => {
       put("workflows", wf.id, wf);
     },
 
-    createWorkflowFromNodes: (name, nodes, edges) => {
+    createWorkflowFromNodes: (name, nodes) => {
       const start = makeStartNode();
       const ranked = nodes.map((n, i) => ({
         ...n,
@@ -553,14 +548,12 @@ export const useStore = create<Store>((set, get) => {
         id: uid(),
         name,
         nodes: [start, ...ranked],
-        edges: ranked.length
-          ? ranked.map((n) => ({
-              id: uid(),
-              source: start.id,
-              target: n.id,
-              type: "smoothstep",
-            }))
-          : edges,
+        edges: ranked.map((n) => ({
+          id: uid(),
+          source: start.id,
+          target: n.id,
+          type: "smoothstep",
+        })),
       });
       set((s) => ({
         workflows: [...s.workflows, wf],
@@ -621,37 +614,6 @@ export const useStore = create<Store>((set, get) => {
         runningEdgeId: null,
         doneEdgeIds: [],
       }),
-
-    importBundle: (bundle) => {
-      const { workflows, savedBodies, headerSets } = get();
-      // re-id the workflow to avoid clobbering an existing one
-      const wf: Workflow = autoLayout(
-        ensureStartNode({ ...bundle.workflow, id: uid() }),
-      );
-      const existingNames = new Set(workflows.map((w) => w.name));
-      wf.name = uniqueLabel(wf.name, existingNames);
-
-      const newBodies = bundle.savedBodies.filter(
-        (b) => !savedBodies.some((x) => x.id === b.id),
-      );
-      const newSets = bundle.headerSets.filter(
-        (h) => !headerSets.some((x) => x.id === h.id),
-      );
-
-      set((s) => ({
-        workflows: [...s.workflows, wf],
-        savedBodies: [...s.savedBodies, ...newBodies],
-        headerSets: [...s.headerSets, ...newSets],
-        activeWorkflowId: wf.id,
-        selectedNodeId: null,
-        runs: {},
-        doneEdgeIds: [],
-        runningEdgeId: null,
-      }));
-      put("workflows", wf.id, wf);
-      newBodies.forEach((b) => put("bodies", b.id, b));
-      newSets.forEach((h) => put("header-sets", h.id, h));
-    },
 
     upsertBody: (b) => {
       set((s) => ({
