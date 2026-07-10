@@ -57,7 +57,7 @@ type Store = {
   // ephemeral run state
   isRunning: boolean;
   runs: Record<string, NodeRun>;
-  runningEdgeId: string | null;
+  runningEdgeIds: string[];
   doneEdgeIds: string[];
 
   hydrate: () => Promise<void>;
@@ -95,6 +95,7 @@ type Store = {
   setActiveHeaderSet: (id: string | null) => void;
 
   selectNode: (id: string | null) => void;
+  deleteNode: (id: string) => void;
 
   /** Re-PUT every entity — recovery action behind the "save failed" chip. */
   retrySaves: () => void;
@@ -109,7 +110,7 @@ type Store = {
 
   // run-state setters (used by the runner)
   setNodeRun: (nodeId: string, run: NodeRun) => void;
-  setRunningEdge: (edgeId: string | null) => void;
+  setRunningEdges: (edgeIds: string[]) => void;
   addDoneEdge: (edgeId: string) => void;
   resetRuns: () => void;
   setIsRunning: (running: boolean) => void;
@@ -324,7 +325,7 @@ export const useStore = create<Store>((set, get) => {
 
     isRunning: false,
     runs: {},
-    runningEdgeId: null,
+    runningEdgeIds: [],
     doneEdgeIds: [],
     historyTick: 0,
 
@@ -532,7 +533,7 @@ export const useStore = create<Store>((set, get) => {
         selectedNodeId: null,
         runs: {},
         doneEdgeIds: [],
-        runningEdgeId: null,
+        runningEdgeIds: [],
       }));
       put("workflows", wf.id, wf);
     },
@@ -564,7 +565,7 @@ export const useStore = create<Store>((set, get) => {
         selectedNodeId: null,
         runs: {},
         doneEdgeIds: [],
-        runningEdgeId: null,
+        runningEdgeIds: [],
       }));
       put("workflows", wf.id, wf);
     },
@@ -614,7 +615,7 @@ export const useStore = create<Store>((set, get) => {
         activeWorkflowId: id,
         selectedNodeId: null,
         runs: {},
-        runningEdgeId: null,
+        runningEdgeIds: [],
         doneEdgeIds: [],
       }),
 
@@ -724,6 +725,20 @@ export const useStore = create<Store>((set, get) => {
       set({ selectedNodeId: id });
     },
 
+    deleteNode: (nodeId) => {
+      const wf = get().workflows.find((w) => w.id === get().activeWorkflowId);
+      if (!wf || wf.nodes.find((n) => n.id === nodeId)?.type !== "api") return;
+      commitGraphHistory();
+      patchActive((w) => {
+        const nodes = w.nodes.filter((n) => n.id !== nodeId);
+        const edges = w.edges.filter(
+          (e) => e.source !== nodeId && e.target !== nodeId,
+        );
+        return autoLayout({ ...w, nodes, edges });
+      });
+      if (get().selectedNodeId === nodeId) set({ selectedNodeId: null });
+    },
+
     retrySaves: () => {
       const { workflows, savedBodies, headerSets, environments } = get();
       workflows.forEach((w) => put("workflows", w.id, workflowPayload(w)));
@@ -734,10 +749,10 @@ export const useStore = create<Store>((set, get) => {
 
     setNodeRun: (nodeId, run) =>
       set((s) => ({ runs: { ...s.runs, [nodeId]: run } })),
-    setRunningEdge: (edgeId) => set({ runningEdgeId: edgeId }),
+    setRunningEdges: (edgeIds) => set({ runningEdgeIds: edgeIds }),
     addDoneEdge: (edgeId) =>
       set((s) => ({ doneEdgeIds: [...s.doneEdgeIds, edgeId] })),
-    resetRuns: () => set({ runs: {}, runningEdgeId: null, doneEdgeIds: [] }),
+    resetRuns: () => set({ runs: {}, runningEdgeIds: [], doneEdgeIds: [] }),
     setIsRunning: (running) => set({ isRunning: running }),
   };
 });

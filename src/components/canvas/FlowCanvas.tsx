@@ -29,7 +29,7 @@ export function FlowCanvas() {
     selectNode,
     undo,
     redo,
-    runningEdgeId,
+    runningEdgeIds,
     doneEdgeIds,
   } = useStore(
     useShallow((s) => ({
@@ -41,7 +41,7 @@ export function FlowCanvas() {
       selectNode: s.selectNode,
       undo: s.undo,
       redo: s.redo,
-      runningEdgeId: s.runningEdgeId,
+      runningEdgeIds: s.runningEdgeIds,
       doneEdgeIds: s.doneEdgeIds,
     })),
   );
@@ -75,13 +75,13 @@ export function FlowCanvas() {
       (workflow?.edges ?? []).map((e) => ({
         ...e,
         className:
-          e.id === runningEdgeId
+          runningEdgeIds.includes(e.id)
             ? "edge-running"
             : doneEdgeIds.includes(e.id)
               ? "edge-done"
               : undefined,
       })),
-    [workflow?.edges, runningEdgeId, doneEdgeIds],
+    [workflow?.edges, runningEdgeIds, doneEdgeIds],
   );
 
   const onDoubleClick = useCallback(() => {

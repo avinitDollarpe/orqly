@@ -1,14 +1,14 @@
 "use client";
 
+import { burstConfetti } from "@/lib/confetti";
 import {
   InterpolationError,
   interpolateBody,
   interpolateString,
   type InterpolationContext,
 } from "@/lib/interpolate";
-import {
-  applyPreRequestScript,
-} from "@/lib/pre-request";
+import { nodeLevel } from "@/lib/layout";
+import { applyPreRequestScript } from "@/lib/pre-request";
 import { useStore } from "@/lib/store";
 import type {
   ApiNode,
@@ -19,7 +19,7 @@ import type {
   WorkflowNode,
 } from "@/lib/types";
 
-/** Kahn topological order; nodes in cycles are returned separately. */
+/** Kahn topological order — used only to detect cycles. */
 function topoOrder(wf: Workflow): {
   order: WorkflowNode[];
   cyclic: WorkflowNode[];
@@ -55,6 +55,12 @@ function topoOrder(wf: Workflow): {
   }
   const seen = new Set(order.map((n) => n.id));
   return { order, cyclic: wf.nodes.filter((n) => !seen.has(n.id)) };
+}
+
+function apiNodesAtLevel(wf: Workflow, level: number): ApiNode[] {
+  return wf.nodes.filter(
+    (n): n is ApiNode => n.type === "api" && nodeLevel(wf, n.id) === level,
+  );
 }
 
 function buildEnv(): Record<string, string> {
@@ -166,9 +172,13 @@ export async function runWorkflow(wf: Workflow) {
   store.resetRuns();
   store.setIsRunning(true);
 
+  const script =
+    wf.preRequestEnabled === false ? undefined : wf.preRequestScript;
+
   try {
     const env = buildEnv();
-    const { order, cyclic } = topoOrder(wf);
+    const { cyclic } = topoOrder(wf);
+    const failed = new Set(cyclic.map((n) => n.id));
     for (const node of cyclic) {
       store.setNodeRun(node.id, {
         status: "error",
@@ -176,42 +186,66 @@ export async function runWorkflow(wf: Workflow) {
       });
     }
 
-    const failed = new Set(cyclic.map((n) => n.id));
-    for (const node of order) {
-      if (node.type === "start") {
-        // Start executes nothing; its outgoing edges light up immediately
-        wf.edges
-          .filter((e) => e.source === node.id)
-          .forEach((e) => useStore.getState().addDoneEdge(e.id));
-        continue;
-      }
-      const incoming = wf.edges.filter((e) => e.target === node.id);
-      if (incoming.some((e) => failed.has(e.source))) {
-        failed.add(node.id);
-        useStore.getState().setNodeRun(node.id, { status: "skipped" });
-        continue;
-      }
+    const start = wf.nodes.find((n) => n.type === "start");
+    if (start) {
+      wf.edges
+        .filter((e) => e.source === start.id)
+        .forEach((e) => store.addDoneEdge(e.id));
+    }
 
-      const inEdge = incoming[incoming.length - 1];
-      if (inEdge) useStore.getState().setRunningEdge(inEdge.id);
+    const maxLevel = Math.max(
+      0,
+      ...wf.nodes
+        .filter((n) => n.type === "api")
+        .map((n) => nodeLevel(wf, n.id)),
+    );
+
+    for (let level = 1; level <= maxLevel; level++) {
+      const batch: ApiNode[] = [];
+      for (const node of apiNodesAtLevel(wf, level)) {
+        if (failed.has(node.id)) continue;
+        const incoming = wf.edges.filter((e) => e.target === node.id);
+        if (incoming.some((e) => failed.has(e.source))) {
+          failed.add(node.id);
+          store.setNodeRun(node.id, { status: "skipped" });
+          continue;
+        }
+        batch.push(node);
+      }
+      if (batch.length === 0) continue;
+
+      const running = batch.flatMap((node) =>
+        wf.edges.filter((e) => e.target === node.id).map((e) => e.id),
+      );
+      store.setRunningEdges(running);
 
       const ctx = { env, nodes: buildNodeContext(wf) };
-      const { ok } = await executeNode(
-        node,
-        ctx,
-        wf.preRequestEnabled === false ? undefined : wf.preRequestScript,
+      const results = await Promise.all(
+        batch.map((node) => executeNode(node, ctx, script)),
       );
+      store.setRunningEdges([]);
 
-      useStore.getState().setRunningEdge(null);
-      if (ok) {
-        incoming.forEach((e) => useStore.getState().addDoneEdge(e.id));
-      } else {
-        failed.add(node.id);
+      for (let i = 0; i < batch.length; i++) {
+        const node = batch[i]!;
+        const { ok } = results[i]!;
+        if (ok) {
+          wf.edges
+            .filter((e) => e.target === node.id)
+            .forEach((e) => store.addDoneEdge(e.id));
+        } else {
+          failed.add(node.id);
+        }
       }
     }
+
+    const apiNodes = wf.nodes.filter((n) => n.type === "api");
+    const allOk =
+      apiNodes.length > 0 &&
+      apiNodes.every((n) => useStore.getState().runs[n.id]?.status === "success");
+    if (allOk) burstConfetti();
   } finally {
-    useStore.getState().setIsRunning(false);
-    useStore.getState().setRunningEdge(null);
+    store.setIsRunning(false);
+    store.setRunningEdges([]);
   }
 }
 
@@ -229,6 +263,6 @@ export async function runSingleNode(wf: Workflow, nodeId: string) {
       wf.preRequestEnabled === false ? undefined : wf.preRequestScript,
     );
   } finally {
-    useStore.getState().setIsRunning(false);
+    store.setIsRunning(false);
   }
 }
