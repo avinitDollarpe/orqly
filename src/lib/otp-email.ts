@@ -1,4 +1,4 @@
-/** OTP email HTML (design source: email-template.html at the repo root). */
+/** OTP email HTML — table layout + inline styles for email-client compatibility. */
 export const otpEmailHtml = (code: string) => `<!DOCTYPE html>
 <html>
   <head>

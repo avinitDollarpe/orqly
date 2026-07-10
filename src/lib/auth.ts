@@ -87,7 +87,7 @@ export const auth = betterAuth({
           to: [email],
         };
         // Published Resend template (supplies its own subject + {{{OTP}}});
-        // falls back to the same design inlined from email-template.html
+        // falls back to the inline HTML in otp-email.ts
         const payload = process.env.RESEND_TEMPLATE_ID
           ? {
               ...base,

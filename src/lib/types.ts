@@ -81,11 +81,3 @@ export type NodeRun = {
   error?: string;
   resolved?: ResolvedRequest;
 };
-
-/** Export bundle: a workflow plus every saved resource it references. */
-export type WorkflowBundle = {
-  orqly: 1;
-  workflow: Workflow;
-  savedBodies: SavedBody[];
-  headerSets: HeaderSet[];
-};

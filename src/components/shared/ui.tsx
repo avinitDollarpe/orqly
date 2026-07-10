@@ -1,14 +1,8 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { methodHue } from "@/lib/method-colors";
+import { METHOD_COLORS } from "@/lib/method-colors";
 import type { Method } from "@/lib/types";
-
-/** Method chip colors — explicit hues so they render inside React Flow nodes. */
-function methodStyle(method: Method): React.CSSProperties {
-  const { color, background } = methodHue(method);
-  return { color, background };
-}
 
 export function MethodChip({
   method,
@@ -19,7 +13,7 @@ export function MethodChip({
 }) {
   return (
     <span
-      style={methodStyle(method)}
+      style={METHOD_COLORS[method]}
       className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-wide ${className}`}
     >
       {method}
@@ -31,12 +25,10 @@ export function Modal({
   title,
   onClose,
   children,
-  footer,
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
-  footer?: React.ReactNode;
 }) {
   // Portal to body: backdrop-filter on .glass ancestors turns them into
   // containing blocks, which would trap this fixed overlay inside the panel.
@@ -57,11 +49,6 @@ export function Modal({
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer && (
-          <div className="flex justify-end gap-2 border-t border-line px-5 py-3">
-            {footer}
-          </div>
-        )}
       </div>
     </div>,
     document.body,

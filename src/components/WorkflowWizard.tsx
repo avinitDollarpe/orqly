@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { importedEnvVars, type ParsedOpenApi } from "@/lib/openapi";
-import { methodHue } from "@/lib/method-colors";
+import { METHOD_COLORS } from "@/lib/method-colors";
 import { parseApiFile } from "@/lib/postman";
 import { useStore } from "@/lib/store";
 import { METHODS, type ApiNode } from "@/lib/types";
@@ -363,7 +363,7 @@ function LayoutDesigner({
                   </span>
                 )}
                 {inRow.map((n) => {
-                  const hue = methodHue(n.data.method).color;
+                  const hue = METHOD_COLORS[n.data.method].color;
                   return (
                     <div
                       key={n.id}
@@ -488,7 +488,7 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
           : { id: crypto.randomUUID(), name: "Development", vars },
       );
     }
-    createWorkflowFromNodes(parsed.name, parsed.nodes, []);
+    createWorkflowFromNodes(parsed.name, parsed.nodes);
     onClose();
   }
 

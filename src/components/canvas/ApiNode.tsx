@@ -14,7 +14,7 @@ import {
   urlDisplayPath,
 } from "@/components/canvas/WorkflowNodeParts";
 import { MethodChip } from "@/components/shared/ui";
-import { methodHue } from "@/lib/method-colors";
+import { METHOD_COLORS } from "@/lib/method-colors";
 import { nodeLevel } from "@/lib/layout";
 import { useActiveWorkflow, useStore } from "@/lib/store";
 import type { ApiNode as ApiNodeType, NodeRun, NodeRunStatus } from "@/lib/types";
@@ -55,7 +55,7 @@ export const ApiNode = memo(function ApiNode({
   const workflow = useActiveWorkflow();
   const status: NodeRunStatus = run?.status ?? "idle";
   const step = workflow ? nodeLevel(workflow, id) : 1;
-  const hue = methodHue(data.method).color;
+  const hue = METHOD_COLORS[data.method].color;
   const path = urlDisplayPath(data.url);
   const meta = runMeta(status, run);
 

@@ -40,11 +40,6 @@ if (pm.request.body && pm.request.body.raw) {
     } catch (e) {
         console.error("Failed to parse request body:", e);
     }
-} else if (pm.request.body.urlencoded) {
-    body = pm.request.body.urlencoded.reduce((data, param) => {
-        data[param.key] = param.value;
-        return data;
-    }, {});
 }
 
 // Sort body recursively and stringify
@@ -76,12 +71,6 @@ function buildPm(
         delete env[key];
       },
     },
-    variables: {
-      get: (key: string) => env[key] ?? "",
-      set: (key: string, value: string) => {
-        env[key] = String(value);
-      },
-    },
     request: {
       method: request.method,
       url: request.url,
@@ -89,18 +78,9 @@ function buildPm(
         add: ({ key, value }: HeaderOp) => {
           addedHeaders.push({ key, value: String(value) });
         },
-        upsert: ({ key, value }: HeaderOp) => {
-          const idx = addedHeaders.findIndex(
-            (h) => h.key.toLowerCase() === key.toLowerCase(),
-          );
-          const row = { key, value: String(value) };
-          if (idx >= 0) addedHeaders[idx] = row;
-          else addedHeaders.push(row);
-        },
       },
       body: {
         raw: request.body ?? "",
-        urlencoded: [] as HeaderOp[],
       },
     },
     console: {
