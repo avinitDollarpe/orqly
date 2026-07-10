@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { VariablePicker } from "@/components/inspector/VariablePicker";
 import { JsonTextarea } from "@/components/shared/JsonTextarea";
@@ -116,11 +117,13 @@ export function Inspector() {
     savedBodies,
     isRunning,
     run,
+    deleteNode,
   } = useStore(
     useShallow((s) => ({
       selectedNodeId: s.selectedNodeId,
       updateNodeData: s.updateNodeData,
       selectNode: s.selectNode,
+      deleteNode: s.deleteNode,
       savedBodies: s.savedBodies,
       isRunning: s.isRunning,
       run: s.selectedNodeId ? s.runs[s.selectedNodeId] : undefined,
@@ -180,6 +183,16 @@ export function Inspector() {
               </span>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => deleteNode(node.id)}
+            disabled={isRunning}
+            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-(--danger) transition hover:bg-danger/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Delete node"
+            title="Delete node"
+          >
+            <Trash2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+          </button>
           <button
             type="button"
             onClick={() => selectNode(null)}
