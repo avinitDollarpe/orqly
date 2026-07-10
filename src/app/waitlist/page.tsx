@@ -1,13 +1,26 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
+import {
+  NODE_H,
+  NODE_W,
+  NodeChevron,
+  NodeField,
+  NodeMetaBadge,
+  NodeTitleRow,
+  PlayIcon,
+  TaskIcon,
+  urlDisplayPath,
+} from "@/components/canvas/WorkflowNodeParts";
+import { MethodChip } from "@/components/shared/ui";
+import { methodHue } from "@/lib/method-colors";
+import type { Method } from "@/lib/types";
 
 /**
- * The waitlist is a locked workflow, rendered in the product's own node
- * grammar: Start → POST /waitlist (the email form IS the node) → GET /orqly
- * (locked until an invite code runs it). Submitting "runs" your node —
- * status chips and edges behave exactly like a real canvas run.
+ * Waitlist — direction E: you land inside the editor canvas. Full playground
+ * demo nodes (Start + seeded API chain) scatter at the periphery; the selected
+ * Join waitlist node sits front-center. Invite access is progressive disclosure.
  */
 
 type RunState = "ready" | "running" | "ok" | "failed";
@@ -41,7 +54,7 @@ function StatusChip({
         style={{ color: hue, background: `color-mix(in srgb, ${hue} 10%, transparent)` }}
       >
         {state === "running" && (
-          <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+          <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current motion-reduce:animate-none" />
         )}
         {text}
       </span>
@@ -50,98 +63,7 @@ function StatusChip({
   );
 }
 
-type EdgeState = "idle" | "running" | "done";
-
-const edgeStroke = (state: EdgeState) =>
-  state === "done"
-    ? "var(--success)"
-    : state === "running"
-      ? "var(--accent)"
-      : "color-mix(in srgb, var(--foreground) 22%, var(--border-strong))";
-
-/** Connection-point dot, same anatomy as canvas handles. */
-function Dot({ state, className = "" }: { state: EdgeState; className?: string }) {
-  return (
-    <span
-      className={`absolute z-10 h-[7px] w-[7px] rounded-full border-[1.5px] bg-surface ${className}`}
-      style={{
-        borderColor: state === "idle" ? "var(--border-strong)" : edgeStroke(state),
-      }}
-    />
-  );
-}
-
-/**
- * Start fans out to both branches — smoothstep fork drawn with borders so
- * the elbows stay crisp at any width. Desktop only; mobile stacks the
- * branches with plain vertical edges.
- */
-function ForkEdges({ left, right }: { left: EdgeState; right: EdgeState }) {
-  const stub = left !== "idle" ? left : right;
-  const half = (state: EdgeState, side: "l" | "r") => (
-    <span
-      className={`absolute top-[14px] bottom-0 ${
-        side === "l"
-          ? "left-1/4 right-1/2 rounded-tl-[10px] border-t-[1.75px] border-l-[1.75px]"
-          : "left-1/2 right-1/4 rounded-tr-[10px] border-t-[1.75px] border-r-[1.75px]"
-      }`}
-      style={{ borderColor: edgeStroke(state) }}
-    />
-  );
-  return (
-    <div className="relative hidden h-12 w-full sm:block" aria-hidden>
-      <span
-        className="absolute top-0 left-1/2 h-[15px] w-[1.75px] -translate-x-1/2"
-        style={{ background: edgeStroke(stub) }}
-      />
-      {half(left, "l")}
-      {half(right, "r")}
-      <Dot state={stub} className="top-0 left-1/2 -translate-x-1/2" />
-      <Dot state={left} className="bottom-0 left-1/4 -translate-x-1/2 translate-y-1/2" />
-      <Dot state={right} className="bottom-0 left-3/4 -translate-x-1/2 translate-y-1/2" />
-    </div>
-  );
-}
-
-/** Vertical wire between nodes — same stroke grammar as canvas edges. */
-function Edge({ state }: { state: EdgeState }) {
-  const stroke =
-    state === "done"
-      ? "var(--success)"
-      : state === "running"
-        ? "var(--accent)"
-        : "color-mix(in srgb, var(--foreground) 22%, var(--border-strong))";
-  return (
-    <div className="flex flex-col items-center" aria-hidden>
-      <span
-        className="h-[7px] w-[7px] rounded-full border-[1.5px] bg-surface"
-        style={{ borderColor: state === "idle" ? "var(--border-strong)" : stroke }}
-      />
-      <svg width="2" height="34" className="-my-px">
-        <line
-          x1="1"
-          y1="0"
-          x2="1"
-          y2="34"
-          stroke={stroke}
-          strokeWidth={state === "idle" ? 1.75 : 2}
-          strokeDasharray={state === "running" ? "6 4" : undefined}
-          className={
-            state === "running"
-              ? "animate-[edge-dash_0.5s_linear_infinite] motion-reduce:animate-none"
-              : undefined
-          }
-        />
-      </svg>
-      <span
-        className="h-[7px] w-[7px] rounded-full border-[1.5px] bg-surface"
-        style={{ borderColor: state === "idle" ? "var(--border-strong)" : stroke }}
-      />
-    </div>
-  );
-}
-
-function NodeTitleRow({
+function HeroTitleRow({
   hue,
   title,
   step,
@@ -177,7 +99,7 @@ function NodeTitleRow({
   );
 }
 
-function MethodTag({ method, hue }: { method: string; hue: string }) {
+function HeroMethodTag({ method, hue }: { method: string; hue: string }) {
   return (
     <span
       className="inline-flex flex-none items-center rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-wide"
@@ -188,14 +110,163 @@ function MethodTag({ method, hue }: { method: string; hue: string }) {
   );
 }
 
+
+const DEMO_ECHO_URL = "{{env.BASE_URL}}/api/echo";
+
+type BackdropDepth = "far" | "mid" | "near";
+
+function BackdropShell({
+  depth,
+  children,
+}: {
+  depth: BackdropDepth;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`workflow-node waitlist-backdrop-node waitlist-backdrop-node--${depth} flex flex-col gap-2 rounded-[20px] p-2`}
+      style={{ width: NODE_W, height: NODE_H }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Start node — matches `StartNode` on the playground canvas. */
+function BackdropStartNode({ depth }: { depth: BackdropDepth }) {
+  const hue = "var(--success)";
+  return (
+    <BackdropShell depth={depth}>
+      <NodeTitleRow hue={hue} icon={<PlayIcon />} title="Start" step={0} />
+      <NodeField>
+        <span className="truncate text-[13px] leading-snug text-muted">
+          Entry point for your workflow
+        </span>
+      </NodeField>
+      <div className="flex px-1">
+        <NodeMetaBadge chip="Trigger" hue={hue} />
+      </div>
+    </BackdropShell>
+  );
+}
+
+/** API node — matches `ApiNode` shells from the seeded demo workflow. */
+function BackdropApiNode({
+  depth,
+  label,
+  step,
+  method,
+  url = DEMO_ECHO_URL,
+}: {
+  depth: BackdropDepth;
+  label: string;
+  step: number;
+  method: Method;
+  url?: string;
+}) {
+  const hue = methodHue(method).color;
+  return (
+    <BackdropShell depth={depth}>
+      <NodeTitleRow hue={hue} icon={<TaskIcon />} title={label} step={step} />
+      <NodeField trailing={<NodeChevron />}>
+        <MethodChip method={method} className="shrink-0" />
+        <span className="min-w-0 truncate font-mono text-[12px] leading-none text-foreground">
+          {urlDisplayPath(url)}
+        </span>
+      </NodeField>
+      <div className="flex px-1">
+        <NodeMetaBadge chip="Ready" hue="var(--accent)" />
+      </div>
+    </BackdropShell>
+  );
+}
+
+/** Seeded demo nodes — same labels, methods and URL as `seed.ts`. */
+const SCATTERED_NODES = [
+  { kind: "start" as const, depth: "far" as const, className: "top-[7%] left-[2%]" },
+  {
+    kind: "api" as const,
+    label: "Create Customer",
+    step: 1,
+    method: "POST" as const,
+    depth: "mid" as const,
+    className: "top-[3.75rem] right-[2%]",
+    align: "right" as const,
+  },
+  {
+    kind: "api" as const,
+    label: "Share KYC",
+    step: 2,
+    method: "POST" as const,
+    depth: "mid" as const,
+    className: "top-[38%] left-[1%]",
+  },
+  {
+    kind: "api" as const,
+    label: "Create Payout",
+    step: 3,
+    method: "POST" as const,
+    depth: "near" as const,
+    className: "bottom-[6%] right-[2%]",
+    align: "right" as const,
+  },
+] as const;
+
+/**
+ * Background canvas — full playground node shells scattered at the periphery.
+ * Clears the hero center; depth tiers keep peripheral nodes from competing.
+ */
+function CanvasBackdrop() {
+  return (
+    <div
+      className="waitlist-backdrop pointer-events-none absolute inset-0 hidden lg:block"
+      aria-hidden
+    >
+      {SCATTERED_NODES.map((node) => (
+        <div
+          key={node.kind === "start" ? "start" : node.label}
+          className={`absolute ${node.className}${"align" in node && node.align === "right" ? " waitlist-backdrop-anchor-right" : ""}`}
+        >
+          {node.kind === "start" ? (
+            <BackdropStartNode depth={node.depth} />
+          ) : (
+            <BackdropApiNode
+              depth={node.depth}
+              label={node.label}
+              step={node.step}
+              method={node.method}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HeroCardGlow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative mt-8 w-full max-w-[380px]">
+      <div
+        aria-hidden
+        className="waitlist-hero-glow bg-pulse pointer-events-none absolute -inset-x-10 -inset-y-8 rounded-[40px] motion-reduce:animate-none"
+      />
+      {children}
+    </div>
+  );
+}
+
 export default function WaitlistPage() {
   const router = useRouter();
+  const inviteInputId = useId();
+  const inviteRef = useRef<HTMLInputElement>(null);
+
   const [email, setEmail] = useState("");
   const [passcode, setPasscode] = useState("");
   const [joinState, setJoinState] = useState<RunState>("ready");
   const [joinError, setJoinError] = useState<string | null>(null);
   const [codeState, setCodeState] = useState<RunState | "locked">("locked");
   const [codeError, setCodeError] = useState<string | null>(null);
+  const [showInvite, setShowInvite] = useState(false);
 
   async function post(body: { email?: string; passcode?: string }) {
     const res = await fetch("/api/waitlist", {
@@ -238,217 +309,207 @@ export default function WaitlistPage() {
     }
   }
 
+  function openInvite() {
+    setShowInvite(true);
+    if (codeState === "locked") setCodeState("ready");
+    requestAnimationFrame(() => inviteRef.current?.focus());
+  }
+
+  function openWaitlist() {
+    setShowInvite(false);
+  }
+
   const joined = joinState === "ok";
   const unlocked = codeState === "ok";
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-6 py-10">
+    <main className="relative min-h-screen overflow-hidden bg-background">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(rgb(208_219_218/0.14)_1.2px,transparent_1.2px)] bg-[size:22px_22px]"
       />
       <div
         aria-hidden
-        className="bg-pulse pointer-events-none absolute inset-0 bg-[radial-gradient(60%_55%_at_50%_30%,rgb(255_90_25/0.13),transparent_70%)]"
+        className="bg-pulse pointer-events-none absolute inset-0 bg-[radial-gradient(60%_55%_at_50%_30%,rgb(255_90_25/0.13),transparent_70%)] motion-reduce:animate-none"
       />
 
-      <div className="relative flex w-full max-w-[420px] flex-col items-center py-4 sm:max-w-[720px]">
-        {/* masthead — one centered axis with the diagram below */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-accent font-mono text-[19px] leading-none font-bold text-on-accent">
-              ⌘
-            </span>
-            <span className="text-[17px] font-semibold tracking-[-0.02em]">Orqly</span>
-          </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 px-2.5 py-1 font-mono text-[10px] font-bold tracking-[0.14em] text-accent uppercase">
-            <span
-              className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent motion-reduce:animate-none"
-              aria-hidden
-            />
-            Private beta
+      <header className="absolute top-4 right-4 left-4 z-40 flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-[10px] bg-accent font-mono text-base leading-none font-bold text-on-accent">
+            ⌘
           </span>
+          <span className="text-[15px] font-semibold tracking-[-0.02em]">Orqly</span>
         </div>
-
-        {/* thesis — one voltage word: the product's payoff moment */}
-        <h1 className="mt-10 text-center text-[clamp(30px,6.5vw,56px)] leading-[1.06] font-extrabold tracking-[-0.035em] text-balance">
-          Chain every API call.
-          <br className="hidden sm:block" /> Watch the whole flow{" "}
-          <span className="text-accent">run.</span>
-        </h1>
-        <p className="mt-5 max-w-[52ch] text-center text-[15px] leading-relaxed text-muted">
-          A node-based editor for API workflows — every response feeds the
-          next request.
-        </p>
-
-        {/* the forked workflow: Start fans out to both branches (level 1) */}
-        <div className="mt-12 flex w-full flex-col items-center">
-          {/* Start */}
-          <div className="workflow-node flex w-full max-w-[340px] flex-col gap-2 rounded-[20px] p-2">
-            <NodeTitleRow
-              hue="var(--success)"
-              title="Start"
-              step="0"
-              icon={
-                <svg className="h-3.5 w-3.5 flex-none" viewBox="0 0 16 16" aria-hidden>
-                  <path
-                    fill="currentColor"
-                    d="M4.5 2.8v10.4c0 .5.55.8 1 .55l8.2-5.2a.65.65 0 0 0 0-1.1L5.5 2.25a.65.65 0 0 0-1 .55Z"
-                  />
-                </svg>
-              }
-            />
-          </div>
-
-          <ForkEdges
-            left={joinState === "running" ? "running" : joined ? "done" : "idle"}
-            right={codeState === "running" ? "running" : unlocked ? "done" : "idle"}
+        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-accent/30 px-2.5 py-1 font-mono text-[10px] font-bold tracking-[0.14em] text-accent uppercase">
+          <span
+            className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent motion-reduce:animate-none"
+            aria-hidden
           />
-          <div className="sm:hidden">
-            <Edge
-              state={joinState === "running" ? "running" : joined ? "done" : "idle"}
-            />
-          </div>
+          Private beta
+        </span>
+      </header>
 
-          <div className="grid w-full grid-cols-1 justify-items-center gap-0 sm:grid-cols-2 sm:items-start sm:gap-6">
+      <div className="relative min-h-screen">
+        <CanvasBackdrop />
 
-          {/* Branch A — the email form */}
-          <form
-            onSubmit={joinWaitlist}
-            className={`workflow-node flex w-full max-w-[340px] flex-col gap-2 self-start justify-self-center rounded-[20px] p-2 ${
-              joinState === "running" ? "node-running" : ""
-            }`}
-          >
-            <NodeTitleRow hue="var(--accent)" title="Join waitlist" step="1" />
-            <div className="flex items-center gap-2 rounded-xl border border-white/12 bg-foreground/[0.03] p-1.5 pl-3">
-              <MethodTag method="POST" hue="var(--accent)" />
-              {joined ? (
-                <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">
-                  {email}
-                </span>
-              ) : (
-                <>
-                  <label htmlFor="waitlist-email" className="sr-only">
-                    Email
-                  </label>
-                  <input
-                    id="waitlist-email"
-                    type="email"
-                    required
-                    autoFocus
-                    placeholder="you@company.com"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (joinState === "failed") setJoinState("ready");
-                    }}
-                    className="h-8 w-full min-w-0 flex-1 bg-transparent font-mono text-xs text-foreground outline-none placeholder:font-sans placeholder:text-[13px] placeholder:text-faint"
-                  />
-                  <button
-                    type="submit"
-                    disabled={joinState === "running"}
-                    className="flex h-8 flex-none cursor-pointer items-center rounded-lg bg-accent px-3 text-[13.5px] font-medium text-on-accent transition hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-                  >
-                    Join
-                  </button>
-                </>
-              )}
-            </div>
-            <StatusChip
-              state={joinState}
-              labels={{ ok: "OK · 201" }}
-              detail={
-                joinState === "failed"
-                  ? joinError
-                  : joined
-                    ? "You're on the list — invite by email."
-                    : null
-              }
-            />
-          </form>
+        <div className="waitlist-vignette absolute inset-0" aria-hidden />
 
-          {/* mobile-only: the second branch stacks below with its own wire */}
-          <div className="flex flex-col items-center sm:hidden">
-            <span className="py-1 font-mono text-[10px] font-bold tracking-[0.14em] text-faint uppercase">
-              or
+        <div className="relative z-30 flex min-h-screen flex-col items-center justify-center px-6 py-24">
+          <h1 className="text-center text-[clamp(28px,5vw,40px)] leading-[1.08] font-extrabold tracking-[-0.03em]">
+            <span className="block">Chain every API call.</span>
+            <span className="block whitespace-nowrap">
+              Watch the whole flow <span className="text-accent">run.</span>
             </span>
-            <Edge
-              state={codeState === "running" ? "running" : unlocked ? "done" : "idle"}
-            />
-          </div>
+          </h1>
+          <p className="mt-4 max-w-[52ch] text-center text-[15px] leading-relaxed text-muted">
+            A visual, node based editor for building API workflows
+          </p>
 
-          {/* Branch B — locked beta access */}
-          <form
-            onSubmit={enterBeta}
-            className={`workflow-node flex w-full max-w-[340px] flex-col gap-2 self-start justify-self-center rounded-[20px] p-2 transition-opacity ${
-              codeState === "running" ? "node-running" : ""
-            } ${codeState === "locked" ? "opacity-80" : ""}`}
-          >
-            <NodeTitleRow
-              hue={unlocked ? "var(--success)" : "var(--foreground)"}
-              title="Beta access"
-              step="1"
-              icon={
-                <svg className="h-3.5 w-3.5 flex-none" viewBox="0 0 16 16" aria-hidden>
-                  {unlocked ? (
-                    <path
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M3 8.4 6.2 11.6 13 4.8"
-                    />
-                  ) : (
-                    <path
-                      fill="currentColor"
-                      d="M8 1.5A3.5 3.5 0 0 0 4.5 5v1.5H4A1.5 1.5 0 0 0 2.5 8v4.5A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5V8A1.5 1.5 0 0 0 12 6.5h-.5V5A3.5 3.5 0 0 0 8 1.5Zm2 5H6V5a2 2 0 1 1 4 0v1.5Z"
-                    />
-                  )}
-                </svg>
-              }
-            />
-            <div className="flex items-center gap-2 rounded-xl border border-white/12 bg-foreground/[0.03] p-1.5 pl-3">
-              <MethodTag method="GET" hue="var(--success)" />
-              <label htmlFor="invite-code" className="sr-only">
-                Invite code
-              </label>
-              <input
-                id="invite-code"
-                type="password"
-                required
-                placeholder="Invite code"
-                value={passcode}
-                onChange={(e) => {
-                  setPasscode(e.target.value);
-                  if (codeState === "failed") setCodeState("locked");
-                }}
-                disabled={unlocked}
-                className="h-8 w-full min-w-0 flex-1 bg-transparent font-mono text-xs text-foreground outline-none placeholder:font-sans placeholder:text-[13px] placeholder:text-faint"
+          {showInvite ? (
+            <HeroCardGlow>
+            <form
+              onSubmit={enterBeta}
+              className={`workflow-node workflow-node--selected relative flex w-full flex-col gap-2 rounded-[20px] p-2 ${
+                codeState === "running" ? "node-running motion-reduce:animate-none" : ""
+              }`}
+            >
+              <HeroTitleRow
+                hue={unlocked ? "var(--success)" : "var(--accent)"}
+                title="Beta access"
+                step="1"
+                icon={
+                  <svg className="h-3.5 w-3.5 flex-none" viewBox="0 0 16 16" aria-hidden>
+                    {unlocked ? (
+                      <path
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 8.4 6.2 11.6 13 4.8"
+                      />
+                    ) : (
+                      <path
+                        fill="currentColor"
+                        d="M8 1.5A3.5 3.5 0 0 0 4.5 5v1.5H4A1.5 1.5 0 0 0 2.5 8v4.5A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5V8A1.5 1.5 0 0 0 12 6.5h-.5V5A3.5 3.5 0 0 0 8 1.5Zm2 5H6V5a2 2 0 1 1 4 0v1.5Z"
+                      />
+                    )}
+                  </svg>
+                }
               />
-              <button
-                type="submit"
-                disabled={codeState === "running" || unlocked}
-                className="flex h-8 flex-none cursor-pointer items-center rounded-lg border border-white/15 bg-foreground/5 px-3 text-[13.5px] font-medium text-foreground transition hover:bg-foreground/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-              >
-                Run
-              </button>
-            </div>
-            <StatusChip
-              state={codeState}
-              labels={{ locked: "Locked", ok: "OK · redirecting" }}
-              detail={
-                codeState === "failed"
-                  ? codeError
-                  : unlocked
-                    ? "Welcome in."
-                    : codeState === "locked"
-                      ? "Runs with your invite code."
+              <div className="flex items-center gap-2 rounded-xl border border-white/12 bg-foreground/[0.03] p-1.5 pl-3">
+                <HeroMethodTag method="GET" hue="var(--success)" />
+                <label htmlFor={inviteInputId} className="sr-only">
+                  Invite code
+                </label>
+                <input
+                  ref={inviteRef}
+                  id={inviteInputId}
+                  type="password"
+                  required
+                  placeholder="Invite code"
+                  value={passcode}
+                  onChange={(e) => {
+                    setPasscode(e.target.value);
+                    if (codeState === "failed") setCodeState("ready");
+                  }}
+                  disabled={unlocked}
+                  className="h-8 w-full min-w-0 flex-1 bg-transparent font-mono text-xs text-foreground outline-none placeholder:font-sans placeholder:text-[13px] placeholder:text-faint"
+                />
+                <button
+                  type="submit"
+                  disabled={codeState === "running" || unlocked}
+                  className="flex h-8 flex-none cursor-pointer items-center rounded-lg border border-white/15 bg-foreground/5 px-3 text-[13.5px] font-medium text-foreground transition hover:bg-foreground/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+                >
+                  Run
+                </button>
+              </div>
+              <StatusChip
+                state={codeState === "locked" ? "ready" : codeState}
+                labels={{ ok: "OK · redirecting" }}
+                detail={
+                  codeState === "failed"
+                    ? codeError
+                    : unlocked
+                      ? "Welcome in."
                       : null
-              }
-            />
-          </form>
-          </div>
+                }
+              />
+            </form>
+            </HeroCardGlow>
+          ) : (
+            <HeroCardGlow>
+            <form
+              onSubmit={joinWaitlist}
+              className={`workflow-node workflow-node--selected relative flex w-full flex-col gap-2 rounded-[20px] p-2 ${
+                joinState === "running" ? "node-running motion-reduce:animate-none" : ""
+              }`}
+            >
+              <HeroTitleRow hue="var(--accent)" title="Join waitlist" step="1" />
+              <div className="flex items-center gap-2 rounded-xl border border-white/12 bg-foreground/[0.03] p-1.5 pl-3">
+                <HeroMethodTag method="POST" hue="var(--accent)" />
+                {joined ? (
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">
+                    {email}
+                  </span>
+                ) : (
+                  <>
+                    <label htmlFor="waitlist-email" className="sr-only">
+                      Email
+                    </label>
+                    <input
+                      id="waitlist-email"
+                      type="email"
+                      required
+                      autoFocus
+                      placeholder="you@company.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (joinState === "failed") setJoinState("ready");
+                      }}
+                      className="h-8 w-full min-w-0 flex-1 bg-transparent font-mono text-xs text-foreground outline-none placeholder:font-sans placeholder:text-[13px] placeholder:text-faint"
+                    />
+                    <button
+                      type="submit"
+                      disabled={joinState === "running"}
+                      className="flex h-8 flex-none cursor-pointer items-center rounded-lg bg-accent px-3 text-[13.5px] font-medium text-on-accent transition hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+                    >
+                      Join
+                    </button>
+                  </>
+                )}
+              </div>
+              <StatusChip
+                state={joinState}
+                labels={{ ok: "OK · 201" }}
+                detail={
+                  joinState === "failed"
+                    ? joinError
+                    : joined
+                      ? "You're on the list — invite by email."
+                      : null
+                }
+              />
+            </form>
+            </HeroCardGlow>
+          )}
+
+          <button
+            type="button"
+            onClick={showInvite ? openWaitlist : openInvite}
+            className="mt-3 cursor-pointer border-none bg-transparent text-[12.5px] font-medium text-muted transition hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          >
+            {showInvite ? (
+              <>
+                Need an invite? <span className="text-accent">Join the waitlist →</span>
+              </>
+            ) : (
+              <>
+                Have an invite code? <span className="text-accent">Run straight in →</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </main>

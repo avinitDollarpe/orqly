@@ -346,6 +346,64 @@ body {
   animation: pulse-ring 1.2s ease-in-out infinite;
 }
 
+/* Waitlist — inside-the-canvas (direction E) */
+.waitlist-vignette {
+  pointer-events: none;
+  z-index: 10;
+  background: radial-gradient(
+    ellipse 72% 64% at 50% 52%,
+    transparent 32%,
+    color-mix(in srgb, var(--background) 42%, transparent) 100%
+  );
+}
+.waitlist-backdrop {
+  z-index: 20;
+}
+.waitlist-backdrop-node {
+  border-color: rgb(255 255 255 / 0.14);
+  background: color-mix(in srgb, var(--surface) 94%, var(--background));
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 4px 18px rgb(0 0 0 / 0.32);
+  transform-origin: top left;
+}
+.waitlist-backdrop-node--far {
+  opacity: 0.28;
+  transform: scale(0.68);
+}
+.waitlist-backdrop-node--mid {
+  opacity: 0.38;
+  transform: scale(0.74);
+}
+.waitlist-backdrop-node--near {
+  opacity: 0.46;
+  transform: scale(0.8);
+}
+.waitlist-backdrop-anchor-right .waitlist-backdrop-node {
+  transform-origin: top right;
+}
+.waitlist-hero-glow {
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 88% 72% at 50% 50%,
+    rgb(255 90 25 / 0.2),
+    transparent 68%
+  );
+}
+@media (prefers-reduced-motion: reduce) {
+  .waitlist-backdrop-node--far {
+    transform: scale(0.68);
+  }
+  .waitlist-backdrop-node--mid {
+    transform: scale(0.74);
+  }
+  .waitlist-backdrop-node--near {
+    transform: scale(0.8);
+  }
+}
+
 /* Didit-style workflow node shell */
 .workflow-node {
   border: 1px solid rgb(255 255 255 / 0.14);
