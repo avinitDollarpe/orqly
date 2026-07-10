@@ -37,6 +37,13 @@ yarn-error.log*
 # vercel
 .vercel
 
+# impeccable live editor overlay (local dev)
+.impeccable/live/
+
+# build caches
+.turbo/
+.eslintcache
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
