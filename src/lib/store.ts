@@ -96,6 +96,9 @@ type Store = {
 
   selectNode: (id: string | null) => void;
 
+  /** Re-PUT every entity — recovery action behind the "save failed" chip. */
+  retrySaves: () => void;
+
   /** Canvas graph undo/redo for the active workflow. */
   historyTick: number;
   canUndo: () => boolean;
@@ -719,6 +722,14 @@ export const useStore = create<Store>((set, get) => {
         nodes: wf.nodes.map((n) => ({ ...n, selected: id != null && n.id === id })),
       }));
       set({ selectedNodeId: id });
+    },
+
+    retrySaves: () => {
+      const { workflows, savedBodies, headerSets, environments } = get();
+      workflows.forEach((w) => put("workflows", w.id, workflowPayload(w)));
+      savedBodies.forEach((b) => put("bodies", b.id, b));
+      headerSets.forEach((h) => put("header-sets", h.id, h));
+      environments.forEach((e) => put("environments", e.id, e));
     },
 
     setNodeRun: (nodeId, run) =>

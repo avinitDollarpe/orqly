@@ -23,15 +23,48 @@ export function ConfirmDialog({
   onCancel,
 }: Props) {
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreFocus = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    restoreFocus.current = document.activeElement as HTMLElement | null;
     confirmRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+
+    const focusable = () => {
+      const root = panelRef.current;
+      if (!root) return [] as HTMLElement[];
+      return [
+        ...root.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ].filter((el) => !el.hasAttribute("disabled"));
     };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCancel();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const nodes = focusable();
+      if (nodes.length === 0) return;
+      const first = nodes[0]!;
+      const last = nodes[nodes.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      restoreFocus.current?.focus();
+    };
   }, [open, onCancel]);
 
   if (!open || typeof document === "undefined") return null;
@@ -43,11 +76,13 @@ export function ConfirmDialog({
       role="presentation"
     >
       <div
+        ref={panelRef}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         aria-describedby="confirm-dialog-desc"
-        className="confirm-dialog glass-heavy w-full max-w-[380px] overflow-hidden rounded-[22px] p-6 text-center"
+        tabIndex={-1}
+        className="confirm-dialog glass-heavy w-full max-w-[380px] overflow-hidden rounded-[22px] p-6 text-center outline-none"
       >
         <span
           className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl ring-1 ring-inset ring-danger/25"

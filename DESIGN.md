@@ -5,24 +5,58 @@ colors:
   carbon-black: "#070606"
   graphite-surface: "#141313"
   graphite-raised: "#1e1e1f"
+  canvas-dot: "#252424"
   steel-ink: "#d0dbda"
   voltage-orange: "#ff5a19"
   voltage-deep: "#f04400"
+  on-accent: "#070606"
   signal-green: "#14DB7F"
-  signal-red: "#dd2545"
+  signal-red: "#e2314f"
+  delete-method: "#dd2545"
   signal-amber: "#ffc107"
   signal-blue: "#2563EB"
+  edge-light-faint: "rgb(255 255 255 / 0.08)"
+  edge-light-soft: "rgb(255 255 255 / 0.12)"
+  edge-light: "rgb(255 255 255 / 0.14)"
+  edge-light-medium: "rgb(255 255 255 / 0.18)"
+  edge-light-strong: "rgb(255 255 255 / 0.36)"
+  edge-light-bright: "rgb(255 255 255 / 0.44)"
+  email-muted: "#8fa09e"
+  email-faint: "#6f7e7c"
 typography:
   headline:
     fontFamily: "Plus Jakarta Sans, ui-sans-serif, system-ui, sans-serif"
     fontSize: "18px"
     fontWeight: 700
     letterSpacing: "-0.02em"
+  subhead:
+    fontFamily: "Plus Jakarta Sans, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "16px"
+    fontWeight: 700
+    letterSpacing: "-0.02em"
+  title:
+    fontFamily: "Plus Jakarta Sans, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "15px"
+    fontWeight: 700
   body:
     fontFamily: "Plus Jakarta Sans, ui-sans-serif, system-ui, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.5
+  ui:
+    fontFamily: "Plus Jakarta Sans, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "13px"
+    fontWeight: 400
+    lineHeight: 1.5
+  control:
+    fontFamily: "Plus Jakarta Sans, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "13.5px"
+    fontWeight: 500
+  compact:
+    fontFamily: "Plus Jakarta Sans, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "11px"
+    fontWeight: 400
+    lineHeight: 1.4
   label:
     fontFamily: "JetBrains Mono, ui-monospace, monospace"
     fontSize: "10px"
@@ -33,10 +67,13 @@ typography:
     fontSize: "12px"
     fontWeight: 400
 rounded:
+  sm: "6px"
   md: "8px"
   lg: "12px"
   xl: "16px"
+  toolbar: "14px"
   node: "20px"
+  confirm: "22px"
   pill: "9999px"
 spacing:
   xs: "4px"
@@ -44,10 +81,12 @@ spacing:
   md: "12px"
   lg: "16px"
   xl: "24px"
+  shell: "12px"
 components:
   button-primary:
     backgroundColor: "{colors.voltage-orange}"
-    textColor: "#ffffff"
+    # carbon ink, not white — white on voltage orange is 3.1:1, ink is 6.4:1 (AA)
+    textColor: "{colors.carbon-black}"
     rounded: "{rounded.md}"
     padding: "9px 12px"
   button-primary-hover:
@@ -113,12 +152,17 @@ strict semaphore of status hues.
 - **Carbon Black** (#070606): Body and canvas background. The room itself.
 - **Graphite Surface** (#141313): Base panel fill; glass layers mix from it.
 - **Graphite Raised** (#1e1e1f): Inputs and raised interactive fills.
-- **Steel Ink** (#d0dbda): Primary text. Muted (60% mix) and Faint (38% mix)
-  steps derive from it via color-mix — never independent grays.
+- **Canvas Dot** (#252424): Dotted grid texture on the workflow canvas.
+- **Steel Ink** (#d0dbda): Primary text. **Muted** (72% mix) and **Faint** (58% mix)
+  steps derive from it via `color-mix` — never independent grays.
+- **Edge-light** (white at 8–44% over dark fills): Glass rim vocabulary — not
+  independent grays. Key steps: faint 8%, soft 12%, default 14%, medium 18% (glass
+  border), strong 36% (selection), bright 44% (active chrome).
 
 ### Semaphore (status & methods)
 - **Signal Green** (#14DB7F): success, GET.
-- **Signal Red** (#dd2545): danger, DELETE.
+- **Signal Red** (#e2314f): danger status + error text (≥4.5:1 on Carbon Black).
+  **Delete method** chip keeps the deeper #dd2545 for method-data contrast.
 - **Signal Amber** (#ffc107): warning, PUT.
 - **Signal Blue** (#2563EB): PATCH.
 - Each pairs with a soft tint (`color-mix(… 10-12%, #141313)`) for chip fills.
@@ -143,7 +187,11 @@ knows the system owns it.
 ### Hierarchy
 - **Headline** (700, 16–18px, -0.02em): Modal titles, card headings. Bold and
   tight, never large — this is an instrument, not a poster.
+- **Title** (700, 15px): Workflow names, wizard card headings.
 - **Body** (400–500, 13–14px, 1.5): Prose, descriptions, form labels.
+- **UI** (400–500, 13px): Dense panel copy, hints, modal sublines.
+- **Control** (500, 13.5px): Button labels and primary control text.
+- **Compact** (400, 11px): Inspector hints, helper text under fields.
 - **Label** (700, 10px, +0.14em, UPPERCASE, mono): Section headers, nav pills,
   status chips. The signature "etched into the panel" voice.
 - **Code** (400–600, 11–12px, mono): URLs, template paths, JSON, counts.
@@ -159,8 +207,10 @@ Structural glass, not ambient mood: blur depth encodes z-order. Three tiers —
 `glass-light` (10px blur; floating controls), `glass` (18px; primary panels:
 sidebar, nav, inspector), `glass-heavy` (28px + denser fill; modals and
 dropdowns). Every glass layer keeps fills ≥60% opaque for legibility and
-carries a 1px white/18% edge-light border. `prefers-reduced-transparency`
-swaps all glass for opaque Graphite Surface.
+carries a 1px `{colors.edge-light-medium}` border. The **edge-light scale**
+(white at 8–44% over dark fills) encodes glass rim depth — use named steps from
+the color tokens, not ad-hoc opacities.
+`prefers-reduced-transparency` swaps all glass for opaque Graphite Surface.
 
 ### Shadow Vocabulary
 - **Node** (`0 1px 2px rgb(0 0 0/.5), 0 8px 24px rgb(0 0 0/.35)`): canvas
@@ -178,7 +228,7 @@ Controls feel calibrated, not bouncy.
 
 ### Buttons
 - **Shape:** Gently rounded (8px); pill (9999px) only in the nav row.
-- **Primary:** Voltage Orange fill, white text, 9px/12px padding, 13.5px/500.
+- **Primary:** Voltage Orange fill, carbon ink text (`--on-accent`), 9px/12px padding, 13.5px/500.
 - **Hover / Focus:** Fill deepens to Voltage Deep; 2px accent `focus-visible`
   outline with 2px offset — focus is never invisible.
 - **Ghost:** 5% Steel Ink fill, 15% white border; hover raises fill to 10%.
@@ -190,7 +240,7 @@ Controls feel calibrated, not bouncy.
   OK green, Failed red, Skipped faint).
 
 ### Cards / Containers
-- **Corner Style:** 16px panels/modals; 20px canvas nodes.
+- **Corner Style:** 16px panels/modals; 20px canvas nodes; 22px confirm dialogs.
 - **Background:** glass tier by altitude (see Elevation); nodes use
   `workflow-node` fill over the dotted canvas.
 - **Border:** 1px white/10–18%; selection swaps to accent.
@@ -207,6 +257,12 @@ Controls feel calibrated, not bouncy.
 - **Style:** 40px `nav-row`; controls are pills — mono 10px uppercase labels
   on 6% Steel Ink fills; icon buttons are 40px circles.
 - **States:** hover raises fill to 9%; active pill carries the accent dot.
+
+### Email (OTP)
+- **Background:** Carbon Black outer, Graphite Surface card (#141313).
+- **Muted prose:** `#8fa09e` (email-muted) — derived Steel Ink mix for email clients.
+- **Faint footer:** `#6f7e7c` (email-faint).
+- **Code display:** Voltage Orange mono at 36px with 8px tracking.
 
 ### Workflow Node (signature)
 The identity component: 280×125 rounded-[20px] shell over the dotted canvas —

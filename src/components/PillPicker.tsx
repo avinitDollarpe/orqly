@@ -19,16 +19,57 @@ export function PillPicker({
   onSelect: (id: string | null) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
+  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const selectedIndex = Math.max(
+    0,
+    items.findIndex((item) => (activeId ?? null) === item.id),
+  );
 
   useEffect(() => {
     if (!open) return;
+    setHighlight(selectedIndex);
+    optionRefs.current[selectedIndex]?.focus();
+
     const close = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (!ref.current?.contains(e.target as Node)) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = (highlight + 1) % items.length;
+        setHighlight(next);
+        optionRefs.current[next]?.focus();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const next = (highlight - 1 + items.length) % items.length;
+        setHighlight(next);
+        optionRefs.current[next]?.focus();
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        setHighlight(0);
+        optionRefs.current[0]?.focus();
+      } else if (e.key === "End") {
+        e.preventDefault();
+        const last = items.length - 1;
+        setHighlight(last);
+        optionRefs.current[last]?.focus();
+      }
+    };
     document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [open]);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, highlight, items.length, selectedIndex]);
 
   return (
     <div ref={ref} className="relative">
@@ -62,18 +103,25 @@ export function PillPicker({
           aria-label={ariaLabel}
           className="glass-heavy absolute top-full right-0 z-50 mt-2 min-w-[160px] overflow-hidden rounded-xl border border-line p-1 shadow-panel"
         >
-          {items.map((item) => {
+          {items.map((item, i) => {
             const selected = (activeId ?? null) === item.id;
             return (
-              <li key={item.id ?? "none"} role="option" aria-selected={selected}>
+              <li key={item.id ?? "none"} role="presentation">
                 <button
+                  ref={(el) => {
+                    optionRefs.current[i] = el;
+                  }}
                   type="button"
+                  role="option"
+                  aria-selected={selected}
                   onClick={() => {
                     onSelect(item.id);
                     setOpen(false);
                   }}
-                  className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition hover:bg-foreground/8 ${
-                    selected ? "text-foreground" : "text-muted hover:text-foreground"
+                  className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition hover:bg-foreground/8 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${
+                    selected || highlight === i
+                      ? "text-foreground"
+                      : "text-muted hover:text-foreground"
                   }`}
                 >
                   <span className="truncate">{item.name}</span>

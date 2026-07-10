@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useShallow } from "zustand/react/shallow";
 import { importedEnvVars, type ParsedOpenApi } from "@/lib/openapi";
 import { METHOD_COLORS } from "@/lib/method-colors";
+import { useDialogBasics } from "@/components/shared/ui";
 import { parseApiFile } from "@/lib/postman";
 import { useStore } from "@/lib/store";
 import { METHODS, type ApiNode } from "@/lib/types";
@@ -411,7 +413,7 @@ function LayoutDesigner({
                           setRemoved((r) => new Set(r).add(n.id))
                         }
                         aria-label={`Remove ${n.data.label}`}
-                        className="-mr-1 flex h-5 w-5 flex-none cursor-pointer items-center justify-center rounded text-faint transition hover:bg-danger/15 hover:text-danger"
+                        className="-mr-1 flex h-8 w-8 flex-none cursor-pointer items-center justify-center rounded text-faint transition hover:bg-danger/15 hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
                       >
                         <svg className="h-2.5 w-2.5" viewBox="0 0 12 12" aria-hidden>
                           <path
@@ -435,7 +437,7 @@ function LayoutDesigner({
         <button
           type="button"
           onClick={onBack}
-          className="cursor-pointer rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition hover:text-foreground"
+          className="cursor-pointer rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Back
         </button>
@@ -453,15 +455,30 @@ function LayoutDesigner({
 }
 
 export function WorkflowWizard({ onClose }: { onClose: () => void }) {
-  const createWorkflow = useStore((s) => s.createWorkflow);
-  const createWorkflowFromNodes = useStore((s) => s.createWorkflowFromNodes);
-  const upsertBody = useStore((s) => s.upsertBody);
-  const upsertEnvironment = useStore((s) => s.upsertEnvironment);
-  const environments = useStore((s) => s.environments);
-  const activeEnvId = useStore((s) => s.activeEnvId);
+  const {
+    createWorkflow,
+    createWorkflowFromNodes,
+    upsertBody,
+    upsertEnvironment,
+    environments,
+    activeEnvId,
+  } = useStore(
+    useShallow((s) => ({
+      createWorkflow: s.createWorkflow,
+      createWorkflowFromNodes: s.createWorkflowFromNodes,
+      upsertBody: s.upsertBody,
+      upsertEnvironment: s.upsertEnvironment,
+      environments: s.environments,
+      activeEnvId: s.activeEnvId,
+    })),
+  );
   const [step, setStep] = useState<Step>({ name: "choose" });
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const processing = step.name === "collecting" || step.name === "placing";
+  const panelRef = useDialogBasics(() => {
+    if (!processing) onClose();
+  });
 
   async function onFile(file: File) {
     try {
@@ -497,7 +514,6 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
     onClose();
   }
 
-  const processing = step.name === "collecting" || step.name === "placing";
   const headline =
     step.name === "choose"
       ? "Create new workflow"
@@ -524,7 +540,14 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
         !processing && e.target === e.currentTarget && onClose()
       }
     >
-      <div className="wizard-panel glass-heavy flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={headline}
+        tabIndex={-1}
+        className="wizard-panel glass-heavy flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl outline-none"
+      >
         {/* header */}
         <div className="flex items-start justify-between px-6 pt-5 pb-4">
           <div className="flex items-start gap-2.5">
@@ -532,7 +555,7 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
               <button
                 onClick={() => setStep({ name: "choose" })}
                 aria-label="Back"
-                className="mt-0.5 -ml-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-muted transition hover:bg-foreground/10 hover:text-foreground"
+                className="mt-0.5 -ml-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-muted transition hover:bg-foreground/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" aria-hidden>
                   <path
@@ -555,7 +578,7 @@ export function WorkflowWizard({ onClose }: { onClose: () => void }) {
             <button
               onClick={onClose}
               aria-label="Close"
-              className="-mr-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-muted transition hover:bg-foreground/10 hover:text-foreground"
+              className="-mr-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-muted transition hover:bg-foreground/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               <svg className="h-3 w-3" viewBox="0 0 12 12" aria-hidden>
                 <path

@@ -1,34 +1,61 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-10T00:00:00Z",
+  "generatedAt": "2026-07-10T18:20:00Z",
   "title": "Design System: Orqly",
   "extensions": {
     "colorMeta": {
       "carbon-black": { "role": "neutral", "displayName": "Carbon Black", "canonical": "#070606", "tonalRamp": ["#070606", "#141313", "#1e1e1f", "#2a2929", "#3d3c3c", "#6b6a6a", "#a3a2a2", "#d6d5d5"] },
       "graphite-surface": { "role": "neutral", "displayName": "Graphite Surface", "canonical": "#141313", "tonalRamp": ["#0a0909", "#141313", "#1e1e1f", "#2a2929", "#403f3f", "#6b6a6a", "#a3a2a2", "#d6d5d5"] },
+      "graphite-raised": { "role": "neutral", "displayName": "Graphite Raised", "canonical": "#1e1e1f", "tonalRamp": ["#0e0e0f", "#141313", "#1e1e1f", "#2a2929", "#403f3f", "#6b6a6a", "#a3a2a2", "#d6d5d5"] },
+      "canvas-dot": { "role": "neutral", "displayName": "Canvas Dot", "canonical": "#252424", "tonalRamp": ["#0a0909", "#141313", "#1e1e1f", "#252424", "#403f3f", "#6b6a6a", "#a3a2a2", "#d6d5d5"] },
       "steel-ink": { "role": "neutral", "displayName": "Steel Ink", "canonical": "#d0dbda", "tonalRamp": ["#20302f", "#33504e", "#4a6f6c", "#6b8f8c", "#8fadaa", "#b3c7c5", "#d0dbda", "#e9efee"] },
       "voltage-orange": { "role": "primary", "displayName": "Voltage Orange", "canonical": "#ff5a19", "tonalRamp": ["#4a1503", "#7a2407", "#a8330b", "#d4430f", "#f04400", "#ff5a19", "#ff8a58", "#ffc4a8"] },
+      "on-accent": { "role": "neutral", "displayName": "Carbon Ink on Accent", "canonical": "#070606", "tonalRamp": ["#070606", "#141313", "#1e1e1f", "#2a2929", "#403f3f", "#6b6a6a", "#a3a2a2", "#d6d5d5"] },
       "signal-green": { "role": "semaphore", "displayName": "Signal Green", "canonical": "#14DB7F", "tonalRamp": ["#032d1a", "#075534", "#0b7d4d", "#0fa565", "#14DB7F", "#4ce6a0", "#8cf0c4", "#c9f9e4"] },
-      "signal-red": { "role": "semaphore", "displayName": "Signal Red", "canonical": "#dd2545", "tonalRamp": ["#3a0a13", "#661223", "#921a32", "#be2040", "#dd2545", "#e75c74", "#f095a4", "#f9d0d7"] },
+      "signal-red": { "role": "semaphore", "displayName": "Signal Red", "canonical": "#e2314f", "tonalRamp": ["#3a0a13", "#661223", "#921a32", "#be2040", "#dd2545", "#e2314f", "#e75c74", "#f9d0d7"] },
+      "delete-method": { "role": "semaphore", "displayName": "Delete Method", "canonical": "#dd2545", "tonalRamp": ["#3a0a13", "#661223", "#921a32", "#be2040", "#dd2545", "#e2314f", "#e75c74", "#f9d0d7"] },
       "signal-amber": { "role": "semaphore", "displayName": "Signal Amber", "canonical": "#ffc107", "tonalRamp": ["#4a3802", "#7a5c04", "#a88005", "#d4a306", "#ffc107", "#ffd24d", "#ffe393", "#fff3d1"] },
-      "signal-blue": { "role": "semaphore", "displayName": "Signal Blue", "canonical": "#2563EB", "tonalRamp": ["#0a1c47", "#12327f", "#1a48b5", "#2563EB", "#4d82f0", "#7fa4f4", "#b1c6f9", "#dfe8fc"] }
+      "signal-blue": { "role": "semaphore", "displayName": "Signal Blue", "canonical": "#2563EB", "tonalRamp": ["#0a1c47", "#12327f", "#1a48b5", "#2563EB", "#4d82f0", "#7fa4f4", "#b1c6f9", "#dfe8fc"] },
+      "edge-light-faint": { "role": "neutral", "displayName": "Edge Light Faint", "canonical": "rgb(255 255 255 / 0.08)", "tonalRamp": ["rgb(255 255 255 / 0.02)", "rgb(255 255 255 / 0.05)", "rgb(255 255 255 / 0.08)", "rgb(255 255 255 / 0.12)", "rgb(255 255 255 / 0.18)", "rgb(255 255 255 / 0.24)", "rgb(255 255 255 / 0.36)", "rgb(255 255 255 / 0.44)"] },
+      "edge-light-soft": { "role": "neutral", "displayName": "Edge Light Soft", "canonical": "rgb(255 255 255 / 0.12)", "tonalRamp": ["rgb(255 255 255 / 0.02)", "rgb(255 255 255 / 0.05)", "rgb(255 255 255 / 0.08)", "rgb(255 255 255 / 0.12)", "rgb(255 255 255 / 0.18)", "rgb(255 255 255 / 0.24)", "rgb(255 255 255 / 0.36)", "rgb(255 255 255 / 0.44)"] },
+      "edge-light": { "role": "neutral", "displayName": "Edge Light", "canonical": "rgb(255 255 255 / 0.14)", "tonalRamp": ["rgb(255 255 255 / 0.02)", "rgb(255 255 255 / 0.05)", "rgb(255 255 255 / 0.08)", "rgb(255 255 255 / 0.12)", "rgb(255 255 255 / 0.14)", "rgb(255 255 255 / 0.18)", "rgb(255 255 255 / 0.36)", "rgb(255 255 255 / 0.44)"] },
+      "edge-light-medium": { "role": "neutral", "displayName": "Edge Light Medium", "canonical": "rgb(255 255 255 / 0.18)", "tonalRamp": ["rgb(255 255 255 / 0.02)", "rgb(255 255 255 / 0.05)", "rgb(255 255 255 / 0.08)", "rgb(255 255 255 / 0.12)", "rgb(255 255 255 / 0.18)", "rgb(255 255 255 / 0.24)", "rgb(255 255 255 / 0.36)", "rgb(255 255 255 / 0.44)"] },
+      "edge-light-strong": { "role": "neutral", "displayName": "Edge Light Strong", "canonical": "rgb(255 255 255 / 0.36)", "tonalRamp": ["rgb(255 255 255 / 0.02)", "rgb(255 255 255 / 0.05)", "rgb(255 255 255 / 0.08)", "rgb(255 255 255 / 0.12)", "rgb(255 255 255 / 0.18)", "rgb(255 255 255 / 0.24)", "rgb(255 255 255 / 0.36)", "rgb(255 255 255 / 0.44)"] },
+      "edge-light-bright": { "role": "neutral", "displayName": "Edge Light Bright", "canonical": "rgb(255 255 255 / 0.44)", "tonalRamp": ["rgb(255 255 255 / 0.02)", "rgb(255 255 255 / 0.05)", "rgb(255 255 255 / 0.08)", "rgb(255 255 255 / 0.12)", "rgb(255 255 255 / 0.18)", "rgb(255 255 255 / 0.24)", "rgb(255 255 255 / 0.36)", "rgb(255 255 255 / 0.44)"] },
+      "email-muted": { "role": "neutral", "displayName": "Email Muted", "canonical": "#8fa09e", "tonalRamp": ["#20302f", "#33504e", "#4a6f6c", "#6b8f8c", "#8fa09e", "#b3c7c5", "#d0dbda", "#e9efee"] },
+      "email-faint": { "role": "neutral", "displayName": "Email Faint", "canonical": "#6f7e7c", "tonalRamp": ["#1a2423", "#2a3a38", "#3d524f", "#556a67", "#6f7e7c", "#8f9d9a", "#b3c0be", "#d6dfde"] }
     },
     "typographyMeta": {
-      "headline": { "displayName": "Headline", "purpose": "Modal and card headings; bold and tight, never poster-sized." },
-      "body": { "displayName": "Body", "purpose": "Prose and form labels in Plus Jakarta Sans." },
+      "headline": { "displayName": "Headline", "purpose": "Modal titles and card headings; bold and tight at 18px." },
+      "subhead": { "displayName": "Subhead", "purpose": "Auth step titles at 16px." },
+      "title": { "displayName": "Title", "purpose": "Workflow names and wizard card headings at 15px." },
+      "body": { "displayName": "Body", "purpose": "Prose and form labels in Plus Jakarta Sans at 14px." },
+      "ui": { "displayName": "UI", "purpose": "Dense panel copy, hints, modal sublines at 13px." },
+      "control": { "displayName": "Control", "purpose": "Button labels and primary control text at 13.5px." },
+      "compact": { "displayName": "Compact", "purpose": "Inspector hints and helper text at 11px." },
       "label": { "displayName": "Etched Label", "purpose": "Mono 10px uppercase 0.14em — section headers, pills, statuses." },
-      "code": { "displayName": "Machine Text", "purpose": "URLs, template paths, JSON, counts." }
+      "code": { "displayName": "Machine Text", "purpose": "URLs, template paths, JSON, counts at 12px mono." }
     },
     "shadows": [
       { "name": "node", "value": "0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.35)", "purpose": "Canvas nodes and cards floating over the dotted grid." },
-      { "name": "panel", "value": "0 1px 3px rgb(0 0 0 / 0.45)", "purpose": "Toolbars and shallow chrome." }
+      { "name": "panel", "value": "0 1px 3px rgb(0 0 0 / 0.45)", "purpose": "Toolbars and shallow chrome." },
+      { "name": "glass-ambient", "value": "0 12px 40px rgb(0 0 0 / 0.55)", "purpose": "Depth under glass panels." },
+      { "name": "glass-inset-top", "value": "inset 0 1px 0 rgb(255 255 255 / 0.1)", "purpose": "Top edge-light on glass surfaces." }
     ],
     "motion": [
       { "name": "ease-enter", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Panel/card entrances (wizard-in, auth-step, confirm-in)." },
-      { "name": "bg-pulse", "value": "16s ease-in-out infinite alternate", "purpose": "Auth/waitlist glow: wandering translate + opacity breathe." }
+      { "name": "bg-pulse", "value": "9s ease-in-out infinite alternate", "purpose": "Auth/waitlist glow: opacity breathe." },
+      { "name": "pulse-ring", "value": "1.2s ease-in-out infinite", "purpose": "Running workflow node accent ring." }
     ],
     "breakpoints": [
-      { "name": "sm", "value": "640px" }
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ],
+    "layout": [
+      { "name": "shell-inset", "value": "0.75rem", "purpose": "Floating shell margin from viewport edges." },
+      { "name": "nav-height", "value": "2.5rem", "purpose": "Top bar and nav pill row height." },
+      { "name": "inspector-gap", "value": "1rem", "purpose": "Gap below nav and above viewport bottom." }
     ]
   },
   "components": [
@@ -38,7 +65,7 @@
       "refersTo": "button-primary",
       "description": "The voltage action — one per view.",
       "html": "<button class=\"ds-btn-primary\">Run flow</button>",
-      "css": ".ds-btn-primary { display:inline-flex; align-items:center; justify-content:center; gap:8px; background: var(--accent, #ff5a19); color:#fff; border:none; border-radius:8px; padding:9px 12px; font: 500 13.5px/1.2 'Plus Jakarta Sans', sans-serif; cursor:pointer; transition: background .15s ease-out; } .ds-btn-primary:hover { background: var(--accent-strong, #f04400); } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent, #ff5a19); outline-offset: 2px; }"
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; justify-content:center; gap:8px; background: var(--accent, #ff5a19); color: var(--on-accent, #070606); border:none; border-radius:8px; padding:9px 12px; font: 500 13.5px/1.2 'Plus Jakarta Sans', sans-serif; cursor:pointer; transition: background .15s ease-out; } .ds-btn-primary:hover { background: var(--accent-strong, #f04400); } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent, #ff5a19); outline-offset: 2px; }"
     },
     {
       "name": "Ghost Button",
@@ -49,12 +76,20 @@
       "css": ".ds-btn-ghost { display:inline-flex; align-items:center; justify-content:center; gap:8px; background: rgba(208,219,218,.05); color:#d0dbda; border:1px solid rgba(255,255,255,.15); border-radius:8px; padding:9px 12px; font: 500 13.5px/1.2 'Plus Jakarta Sans', sans-serif; cursor:pointer; transition: background .15s ease-out; } .ds-btn-ghost:hover { background: rgba(208,219,218,.1); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--accent, #ff5a19); outline-offset: 2px; }"
     },
     {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Destructive confirm action in alert dialogs.",
+      "html": "<button class=\"ds-btn-danger\">Delete</button>",
+      "css": ".ds-btn-danger { display:inline-flex; align-items:center; justify-content:center; gap:8px; background: var(--danger, #e2314f); color: var(--on-accent, #070606); border:none; border-radius:12px; padding:9px 12px; font: 600 14px/1.2 'Plus Jakarta Sans', sans-serif; cursor:pointer; transition: filter .15s ease-out; } .ds-btn-danger:hover { filter: brightness(0.9); } .ds-btn-danger:focus-visible { outline: 2px solid var(--danger, #e2314f); outline-offset: 2px; }"
+    },
+    {
       "name": "Input Field",
       "kind": "input",
       "refersTo": "input-field",
       "description": "Wire-goes-live focus: border snaps to accent with a 1px ring.",
       "html": "<input class=\"ds-input\" placeholder=\"{{env.BASE_URL}}/v1/customers\" />",
-      "css": ".ds-input { width:100%; background: rgba(208,219,218,.05); color:#d0dbda; border:1px solid rgba(255,255,255,.15); border-radius:8px; padding:8px 10px; font: 400 13px/1.4 'Plus Jakarta Sans', sans-serif; outline:none; transition: border-color .15s ease-out, box-shadow .15s ease-out; } .ds-input::placeholder { color: #6b7776; } .ds-input:focus { border-color: var(--accent, #ff5a19); box-shadow: 0 0 0 1px var(--accent, #ff5a19); }"
+      "css": ".ds-input { width:100%; background: rgba(208,219,218,.05); color:#d0dbda; border:1px solid rgba(255,255,255,.15); border-radius:8px; padding:8px 10px; font: 400 13px/1.4 'Plus Jakarta Sans', sans-serif; outline:none; transition: border-color .15s ease-out, box-shadow .15s ease-out; } .ds-input::placeholder { color: color-mix(in srgb, #d0dbda 58%, #070606); } .ds-input:focus { border-color: var(--accent, #ff5a19); box-shadow: 0 0 0 1px var(--accent, #ff5a19); }"
     },
     {
       "name": "Method Chip",
@@ -78,7 +113,7 @@
       "refersTo": "chip-method",
       "description": "The signature component: request node with tinted title row, mono URL, status chip.",
       "html": "<div class=\"ds-node\"><div class=\"ds-node-title\"><span class=\"ds-node-name\">Create Customer</span><span class=\"ds-node-step\">1</span></div><div class=\"ds-node-field\"><span class=\"ds-node-method\">POST</span><span class=\"ds-node-url\">{{env.BASE_URL}}/api/customers</span></div><span class=\"ds-node-status\">READY</span></div>",
-      "css": ".ds-node { width:280px; display:flex; flex-direction:column; gap:8px; border-radius:20px; padding:8px; background:#100f0f; border:1px solid rgba(255,255,255,.1); box-shadow: 0 1px 2px rgb(0 0 0 / .5), 0 8px 24px rgb(0 0 0 / .35); font-family:'Plus Jakarta Sans', sans-serif; } .ds-node-title { display:flex; align-items:center; justify-content:space-between; border-radius:9999px; padding:4px 4px 4px 8px; color:#ff5a19; background: linear-gradient(to right, rgba(255,90,25,.08), transparent); } .ds-node-name { font-size:15px; font-weight:500; letter-spacing:-0.01em; } .ds-node-step { display:flex; width:20px; height:20px; align-items:center; justify-content:center; border-radius:9999px; border:1px solid #ff5a19; font: 500 10px/1 'JetBrains Mono', monospace; } .ds-node-field { display:flex; align-items:center; gap:8px; height:36px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background: rgba(208,219,218,.03); padding:8px 12px; } .ds-node-method { color:#ff5a19; background:rgba(255,90,25,.1); border-radius:6px; padding:2px 6px; font: 700 10px/1.4 'JetBrains Mono', monospace; } .ds-node-url { color:#d0dbda; font: 400 12px/1 'JetBrains Mono', monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .ds-node-status { display:inline-flex; width:fit-content; margin-left:4px; color:#ff5a19; background:rgba(255,90,25,.1); border-radius:6px; padding:2px 8px; font: 700 10px/1.6 'JetBrains Mono', monospace; letter-spacing:.08em; }"
+      "css": ".ds-node { width:280px; display:flex; flex-direction:column; gap:8px; border-radius:20px; padding:8px; background:#100f0f; border:1px solid rgb(255 255 255 / 0.14); box-shadow: 0 1px 2px rgb(0 0 0 / .5), 0 8px 24px rgb(0 0 0 / .35); font-family:'Plus Jakarta Sans', sans-serif; } .ds-node-title { display:flex; align-items:center; justify-content:space-between; border-radius:9999px; padding:4px 4px 4px 8px; color:#ff5a19; background: linear-gradient(to right, rgba(255,90,25,.08), transparent); } .ds-node-name { font-size:15px; font-weight:500; letter-spacing:-0.01em; } .ds-node-step { display:flex; width:20px; height:20px; align-items:center; justify-content:center; border-radius:9999px; border:1px solid #ff5a19; font: 500 10px/1 'JetBrains Mono', monospace; } .ds-node-field { display:flex; align-items:center; gap:8px; height:36px; border-radius:12px; border:1px solid rgb(255 255 255 / 0.12); background: rgba(208,219,218,.03); padding:8px 12px; } .ds-node-method { color:#ff5a19; background:rgba(255,90,25,.1); border-radius:6px; padding:2px 6px; font: 700 10px/1.4 'JetBrains Mono', monospace; } .ds-node-url { color:#d0dbda; font: 400 12px/1 'JetBrains Mono', monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .ds-node-status { display:inline-flex; width:fit-content; margin-left:4px; color:#ff5a19; background:rgba(255,90,25,.1); border-radius:6px; padding:2px 8px; font: 700 10px/1.6 'JetBrains Mono', monospace; letter-spacing:.08em; }"
     }
   ],
   "narrative": {

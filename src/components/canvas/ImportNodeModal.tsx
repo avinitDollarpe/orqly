@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useShallow } from "zustand/react/shallow";
+import { useDialogBasics } from "@/components/shared/ui";
 import { parseCurl } from "@/lib/curl";
 import { importedEnvVars } from "@/lib/openapi";
 import { parseApiFile } from "@/lib/postman";
@@ -24,16 +26,22 @@ export function ImportNodeModal({
   anchorNodeId: string;
   onClose: () => void;
 }) {
-  const addNode = useStore((s) => s.addNode);
-  const upsertBody = useStore((s) => s.upsertBody);
-  const upsertEnvironment = useStore((s) => s.upsertEnvironment);
-  const environments = useStore((s) => s.environments);
-  const activeEnvId = useStore((s) => s.activeEnvId);
+  const { addNode, upsertBody, upsertEnvironment, environments, activeEnvId } =
+    useStore(
+      useShallow((s) => ({
+        addNode: s.addNode,
+        upsertBody: s.upsertBody,
+        upsertEnvironment: s.upsertEnvironment,
+        environments: s.environments,
+        activeEnvId: s.activeEnvId,
+      })),
+    );
 
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const panelRef = useDialogBasics(onClose);
 
   function importCurl() {
     try {
@@ -96,7 +104,14 @@ export function ImportNodeModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="glass-heavy flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Import requests"
+        tabIndex={-1}
+        className="glass-heavy flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl outline-none"
+      >
         <div className="flex items-start justify-between px-6 pt-5 pb-4">
           <div>
             <h2 className="text-lg font-bold tracking-tight">Import requests</h2>
@@ -107,7 +122,7 @@ export function ImportNodeModal({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="-mr-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-muted transition hover:bg-foreground/10 hover:text-foreground"
+            className="-mr-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-muted transition hover:bg-foreground/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <svg className="h-3 w-3" viewBox="0 0 12 12" aria-hidden>
               <path

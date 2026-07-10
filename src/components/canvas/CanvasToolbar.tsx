@@ -2,6 +2,7 @@
 
 import { useOnViewportChange, useReactFlow } from "@xyflow/react";
 import { useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useStore } from "@/lib/store";
 
 const toolBtn =
@@ -85,18 +86,19 @@ function RedoIcon() {
 }
 
 export function CanvasToolbar() {
-  const sidebarOpen = useStore((s) => s.sidebarOpen);
-  const setSidebarOpen = useStore((s) => s.setSidebarOpen);
-  const undo = useStore((s) => s.undo);
-  const redo = useStore((s) => s.redo);
-  const canUndo = useStore((s) => {
-    void s.historyTick;
-    return s.canUndo();
-  });
-  const canRedo = useStore((s) => {
-    void s.historyTick;
-    return s.canRedo();
-  });
+  const { sidebarOpen, setSidebarOpen, undo, redo, canUndo, canRedo } = useStore(
+    useShallow((s) => {
+      void s.historyTick;
+      return {
+        sidebarOpen: s.sidebarOpen,
+        setSidebarOpen: s.setSidebarOpen,
+        undo: s.undo,
+        redo: s.redo,
+        canUndo: s.canUndo(),
+        canRedo: s.canRedo(),
+      };
+    }),
+  );
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const [zoomPct, setZoomPct] = useState(100);
 

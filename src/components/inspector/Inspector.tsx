@@ -10,6 +10,7 @@ import { METHOD_COLORS } from "@/lib/method-colors";
 import { nodeLevel } from "@/lib/layout";
 import { runSingleNode } from "@/lib/runner";
 import { useActiveWorkflow, useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { METHODS, type Method, type NodePlacement } from "@/lib/types";
 
 const accent = "var(--accent)";
@@ -45,7 +46,7 @@ function Section({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="mb-3 flex w-full cursor-pointer items-center gap-2 text-left"
+        className="mb-3 flex w-full cursor-pointer items-center gap-2 rounded-md text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <svg
           className={`h-2.5 w-2.5 text-faint transition-transform ${open ? "rotate-90" : ""}`}
@@ -108,12 +109,23 @@ function Notice({ tone, children }: { tone: "warning" | "danger"; children: Reac
 
 export function Inspector() {
   const workflow = useActiveWorkflow();
-  const selectedNodeId = useStore((s) => s.selectedNodeId);
-  const updateNodeData = useStore((s) => s.updateNodeData);
-  const selectNode = useStore((s) => s.selectNode);
-  const savedBodies = useStore((s) => s.savedBodies);
-  const isRunning = useStore((s) => s.isRunning);
-  const run = useStore((s) => (selectedNodeId ? s.runs[selectedNodeId] : undefined));
+  const {
+    selectedNodeId,
+    updateNodeData,
+    selectNode,
+    savedBodies,
+    isRunning,
+    run,
+  } = useStore(
+    useShallow((s) => ({
+      selectedNodeId: s.selectedNodeId,
+      updateNodeData: s.updateNodeData,
+      selectNode: s.selectNode,
+      savedBodies: s.savedBodies,
+      isRunning: s.isRunning,
+      run: s.selectedNodeId ? s.runs[s.selectedNodeId] : undefined,
+    })),
+  );
 
   const [tab, setTab] = useState<"request" | "response">("request");
   const [copied, setCopied] = useState<string | null>(null);
@@ -142,7 +154,7 @@ export function Inspector() {
   const responsePaths = run?.response ? flattenPaths(run.response.body) : [];
 
   return (
-    <aside className="inspector-panel inspector-float z-40 flex w-[400px] flex-col overflow-hidden rounded-[20px]">
+    <aside className="inspector-panel inspector-float z-40 flex w-[400px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[20px]">
       {/* header — mirrors node card */}
       <div className="shrink-0 p-3">
         <div className="flex items-start gap-2">
@@ -171,7 +183,7 @@ export function Inspector() {
           <button
             type="button"
             onClick={() => selectNode(null)}
-            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted transition hover:bg-foreground/8 hover:text-foreground"
+            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted transition hover:bg-foreground/8 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             aria-label="Close inspector"
           >
             <svg className="h-4 w-4" viewBox="0 0 16 16" aria-hidden>
@@ -194,7 +206,7 @@ export function Inspector() {
                 type="button"
                 data-testid={`tab-${t}`}
                 onClick={() => setTab(t)}
-                className={`flex flex-1 items-baseline justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium capitalize transition ${
+                className={`flex flex-1 items-baseline justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium capitalize transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                   tab === t
                     ? "bg-surface text-foreground shadow-sm"
                     : "text-muted hover:text-foreground"
@@ -217,7 +229,7 @@ export function Inspector() {
             type="button"
             onClick={() => runSingleNode(workflow, node.id)}
             disabled={isRunning}
-            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-white/12 bg-foreground/[0.04] px-3 text-xs font-medium text-muted transition hover:border-accent/30 hover:text-accent disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-white/12 bg-foreground/[0.04] px-3 text-xs font-medium text-muted transition hover:border-accent/30 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
             title="Run only this node"
           >
             <svg className="h-3 w-3" viewBox="0 0 16 16" aria-hidden>
