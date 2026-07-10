@@ -1,15 +1,17 @@
 <div align="center">
 
+<img src="src/app/icon.svg" alt="orqly logo" width="88" height="88">
+
 # orqly
 
 **Build, test and simulate complex API workflows in a node-based visual editor.**
 
 Chain API calls as connected nodes, pipe any node's response into a later request, and watch the whole flow run step by step.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
+[![License: MIT](https://img.shields.io/badge/License-MIT-1e1e1f?labelColor=070606&logo=opensourceinitiative&logoColor=ff5a19)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-16-1e1e1f?labelColor=070606&logo=next.js&logoColor=ff5a19)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-1e1e1f?labelColor=070606&logo=typescript&logoColor=ff5a19)](https://www.typescriptlang.org)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-1e1e1f?labelColor=070606&logo=github&logoColor=ff5a19)](#contributing)
 
 <!-- Add a screenshot or GIF here — e.g. ![orqly](docs/demo.gif) -->
 
