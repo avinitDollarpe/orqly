@@ -262,24 +262,27 @@ export default function WaitlistPage() {
             <span className="text-[17px] font-semibold tracking-[-0.02em]">Orqly</span>
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 px-2.5 py-1 font-mono text-[10px] font-bold tracking-[0.14em] text-accent uppercase">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
+            <span
+              className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent motion-reduce:animate-none"
+              aria-hidden
+            />
             Private beta
           </span>
         </div>
 
-        {/* thesis */}
-        <h1 className="mt-8 text-center text-[clamp(26px,5vw,40px)] leading-[1.1] font-extrabold tracking-[-0.03em] text-balance">
+        {/* thesis — one voltage word: the product's payoff moment */}
+        <h1 className="mt-10 text-center text-[clamp(30px,6.5vw,56px)] leading-[1.06] font-extrabold tracking-[-0.035em] text-balance">
           Chain every API call.
-          <br className="hidden sm:block" /> Watch the whole flow run.
+          <br className="hidden sm:block" /> Watch the whole flow{" "}
+          <span className="text-accent">run.</span>
         </h1>
-        <p className="mt-4 max-w-[46ch] text-center text-[14px] leading-relaxed text-muted">
-          Orqly is a node-based editor for API workflows — every response
-          feeds the next request. Two branches from Start: queue for an
-          invite, or run straight in with a code.
+        <p className="mt-5 max-w-[52ch] text-center text-[15px] leading-relaxed text-muted">
+          A node-based editor for API workflows — every response feeds the
+          next request.
         </p>
 
         {/* the forked workflow: Start fans out to both branches (level 1) */}
-        <div className="mt-10 flex w-full flex-col items-center">
+        <div className="mt-12 flex w-full flex-col items-center">
           {/* Start */}
           <div className="workflow-node flex w-full max-w-[340px] flex-col gap-2 rounded-[20px] p-2">
             <NodeTitleRow
