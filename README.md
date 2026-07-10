@@ -23,15 +23,17 @@ Think Postman meets a flow builder: `Create Customer → Share KYC → Create Pa
 
 ## Features
 
-- **Visual flow builder** — each node is one API request (method, URL, headers, body). Drag to connect any node to any other; the target becomes a child, one level down. Run the whole flow or a single node.
+- **Visual flow builder** — each node is one API request (method, URL, headers, body). Drag to connect any node to any other; the target becomes a child, one level down. Delete a node and the graph re-levels itself.
+- **Parallel runs** — nodes on the same level execute concurrently; a failure marks everything downstream as skipped instead of aborting the run. All green earns confetti.
 - **Response chaining** — `{{env.API_KEY}}` and `{{nodes.<name>.response.body.…}}` templates in URLs, headers and bodies, with a variable picker fed by real responses.
 - **Import anything** — paste a **cURL** command, or drop an **OpenAPI 3**, **Swagger 2** or **Postman** collection; every endpoint becomes a node. An arrange step lets you set each request's level and drop the ones you don't want before building.
 - **Workflow-wide env & headers** — pick one active environment and one header set from the top bar; both apply to every node. Inline node headers override the set.
 - **Pre-request scripts** — a Postman-style script (with `pm` + `CryptoJS`) runs before each request; toggle it per workflow.
 - **JSON body editor** — syntax-highlighted, with `{{template}}` awareness.
 - **Server-side proxy** — requests execute from the server, so browser CORS never gets in the way.
-- **Accounts & persistence** — email/password (+ optional Google / GitHub) via Better Auth; everything saves per user in Postgres.
+- **Accounts & persistence** — email OTP sign-in (+ optional Google / GitHub) via Better Auth; everything saves per user in Postgres.
 - **Export / import** — share a workflow with its referenced bodies and header sets as JSON.
+- **Private beta mode** — set one passcode and the whole app hides behind a waitlist page; invited testers enter the code, everyone else can join the list.
 
 ## Quick start
 
@@ -42,18 +44,18 @@ npx drizzle-kit push      # create the database tables
 npm run dev               # http://localhost:3000
 ```
 
-Sign up, and a demo workflow targeting the built-in `/api/echo` endpoint is seeded on first sign-in.
+Sign in with any email — without `RESEND_API_KEY` set, the OTP code is printed to the server console. A demo workflow targeting the built-in `/api/echo` endpoint is seeded on first sign-in.
 
 ## How it works
 
 - **Nodes & levels** — a node's *level* is its row on the canvas. Level 1 runs after Start; level 2 after level 1, and so on. Connecting or dragging a node re-derives its level and re-lays out the graph.
 - **Templating** — `{{env.KEY}}` pulls from the active environment; `{{nodes.<label>.response.body.path.to.value}}` pulls from an upstream node's last response. Resolved at run time.
 - **Resources** — request bodies, header sets and environments are saved once and referenced across nodes and workflows.
-- **Execution** — the runner topologically walks the graph, runs each node through `/api/execute` (the server proxy), and feeds responses back into the template context for downstream nodes.
+- **Execution** — the runner walks the graph level by level, fires each level's nodes in parallel through `/api/execute` (the server proxy), and feeds responses back into the template context for downstream nodes. A failed node marks its descendants skipped; the rest of the flow keeps running.
 
 ## Environment variables
 
-All variables live in `.env` (never commit it — only `.env.example` is tracked). The optional **GitHub sign-in** and **Resend email OTP** keys are documented inline in `.env.example`.
+All variables live in `.env` (never commit it — only `.env.example` is tracked); a few extra niche keys are documented inline in `.env.example`.
 
 ### `DATABASE_URL` — required
 
@@ -87,6 +89,14 @@ Use a different secret per environment; rotating it signs every user out.
 
 The URL the app is served from, no trailing slash. Local: `http://localhost:3000`. Production: your deployed origin.
 
+### `RESEND_API_KEY` / `RESEND_FROM` — optional
+
+Delivers sign-in OTP codes by email via [Resend](https://resend.com). Unset, codes are printed to the server console (dev only). `RESEND_FROM` needs a domain verified in Resend.
+
+### `BETA_PASSCODE` — optional
+
+Set to put the whole app behind the waitlist: every page and API redirects to `/waitlist` until the visitor enters this passcode (share it with beta testers). Unset = the app is open (local dev, self-hosting). `NEXT_PUBLIC_DISCORD_URL` / `NEXT_PUBLIC_X_URL` add social links to the waitlist success screen.
+
 ### `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — optional
 
 Enables "Continue with Google" (hidden while unset; email/password works without them). From the Google Cloud Console:
@@ -97,6 +107,10 @@ Enables "Continue with Google" (hidden while unset; email/password works without
    - Authorized origin: `http://localhost:3000` (+ your production origin)
    - Redirect URI: `http://localhost:3000/api/auth/callback/google` (+ production)
 4. Copy the Client ID and secret into `.env`, then restart the dev server.
+
+### `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — optional
+
+Enables "Continue with GitHub". Create an OAuth App at [github.com/settings/developers](https://github.com/settings/developers) with redirect URI `{BETTER_AUTH_URL}/api/auth/callback/github`.
 
 ### `EXECUTE_BLOCK_PRIVATE_IPS` — optional, recommended in production
 
