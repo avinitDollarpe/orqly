@@ -498,15 +498,21 @@ export default function WaitlistPage() {
           <button
             type="button"
             onClick={showInvite ? openWaitlist : openInvite}
-            className="mt-3 cursor-pointer border-none bg-transparent text-[12.5px] font-medium text-muted transition hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            className="group mt-3 cursor-pointer border-none bg-transparent text-[12.5px] font-medium text-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
           >
             {showInvite ? (
               <>
-                Need an invite? <span className="text-accent">Join the waitlist →</span>
+                Need an invite?{" "}
+                <span className="text-accent transition-colors group-hover:text-accent-strong">
+                  Join the waitlist →
+                </span>
               </>
             ) : (
               <>
-                Have an invite code? <span className="text-accent">Run straight in →</span>
+                Have an invite code?{" "}
+                <span className="text-accent transition-colors group-hover:text-accent-strong">
+                  Run straight in →
+                </span>
               </>
             )}
           </button>
