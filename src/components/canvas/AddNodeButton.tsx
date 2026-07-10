@@ -56,8 +56,7 @@ export function AddNodeButton({ nodeId, variant = "api" }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    setHighlight(0);
-    itemRefs.current[0]?.focus();
+    itemRefs.current[highlight]?.focus();
 
     const close = (e: MouseEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
@@ -139,7 +138,12 @@ export function AddNodeButton({ nodeId, variant = "api" }: Props) {
         className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         onClick={(e) => {
           e.stopPropagation();
-          setOpen((o) => !o);
+          if (open) {
+            setOpen(false);
+          } else {
+            setHighlight(0);
+            setOpen(true);
+          }
         }}
       >
         <span className="flex size-6 items-center justify-center rounded-full border-2 border-accent bg-canvas text-accent shadow-sm transition-all duration-200 ease-out hover:scale-110 hover:border-accent hover:bg-accent hover:text-on-accent motion-reduce:transition-none motion-reduce:hover:transform-none">

@@ -30,8 +30,7 @@ export function PillPicker({
 
   useEffect(() => {
     if (!open) return;
-    setHighlight(selectedIndex);
-    optionRefs.current[selectedIndex]?.focus();
+    optionRefs.current[highlight]?.focus();
 
     const close = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) setOpen(false);
@@ -75,7 +74,14 @@ export function PillPicker({
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (open) {
+            setOpen(false);
+          } else {
+            setHighlight(selectedIndex);
+            setOpen(true);
+          }
+        }}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
