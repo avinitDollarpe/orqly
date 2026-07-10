@@ -8,6 +8,16 @@
 
 export const BETA_COOKIE = "orqly-beta";
 
+export function normalizePasscode(passcode: string): string {
+  return passcode.trim().toUpperCase();
+}
+
+export function passcodeMatches(input: string): boolean {
+  const expected = process.env.BETA_PASSCODE;
+  if (!expected) return false;
+  return normalizePasscode(input) === normalizePasscode(expected);
+}
+
 /** Cookie value: HMAC(passcode, BETTER_AUTH_SECRET) — unforgeable without the server secret. */
 export async function betaCookieValue(): Promise<string> {
   const key = await crypto.subtle.importKey(
