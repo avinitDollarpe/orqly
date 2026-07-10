@@ -12,12 +12,23 @@ const googleConfigured =
 const githubConfigured =
   !!process.env.GITHUB_CLIENT_ID && !!process.env.GITHUB_CLIENT_SECRET;
 
+/** Origins allowed for auth requests (fixes 403 INVALID_ORIGIN on production). */
+function authTrustedOrigins(): string[] {
+  const origins = new Set<string>(["http://localhost:3000"]);
+  const base = process.env.BETTER_AUTH_URL?.replace(/\/$/, "");
+  if (base) origins.add(base);
+  for (const raw of process.env.BETTER_AUTH_TRUSTED_ORIGINS?.split(",") ?? []) {
+    const o = raw.trim().replace(/\/$/, "");
+    if (o) origins.add(o);
+  }
+  return [...origins];
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg", schema }),
-  // Dev is often browsed on localhost while BETTER_AUTH_URL points at an
-  // ngrok tunnel (for OAuth callbacks); trust both so neither trips the
-  // origin check
-  trustedOrigins: ["http://localhost:3000"],
+  // BETTER_AUTH_URL must match the browser origin (e.g. https://orqly.xyz).
+  // Extra origins (old domains, www) via BETTER_AUTH_TRUSTED_ORIGINS comma-separated.
+  trustedOrigins: authTrustedOrigins(),
   // DB-backed so limits hold across serverless instances; memory storage is
   // per-lambda on Vercel. The OTP verify endpoint keeps the emailOTP
   // plugin's own 3-per-minute rule.
