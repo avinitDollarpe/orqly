@@ -12,6 +12,7 @@
     "@better-auth/infra": "^0.3.5",
     "@better-auth/passkey": "^1.6.23",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "@xyflow/react": "^12.11.2",
     "better-auth": "^1.6.23",
     "crypto-js": "^4.2.0",
