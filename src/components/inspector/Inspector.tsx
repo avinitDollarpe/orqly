@@ -351,7 +351,14 @@ export function Inspector() {
                   { id: "saved", label: "Saved" },
                   { id: "inline", label: "Inline" },
                 ]}
-                onChange={(bodyMode) => patch({ bodyMode })}
+                onChange={(bodyMode) =>
+                  patch({
+                    bodyMode,
+                    ...(bodyMode === "inline" && !data.inlineBody.trim()
+                      ? { inlineBody: "{}" }
+                      : {}),
+                  })
+                }
               />
               {data.bodyMode === "saved" && (
                 <div className="mt-3 space-y-2">
@@ -378,7 +385,20 @@ export function Inspector() {
               )}
               {data.bodyMode === "inline" && (
                 <div className="mt-3">
-                  <div className="mb-2 flex justify-end">
+                  <div className="mb-2 flex justify-between">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          patch({ inlineBody: JSON.stringify(JSON.parse(data.inlineBody), null, 2) });
+                        } catch {
+                          /* invalid JSON — JsonTextarea already flags it on blur */
+                        }
+                      }}
+                      className="rounded-md border border-line bg-surface px-1.5 py-1 font-mono text-[10px] text-muted transition hover:border-accent hover:text-accent"
+                    >
+                      Beautify
+                    </button>
                     <VariablePicker
                       nodeId={node.id}
                       onInsert={(t) =>

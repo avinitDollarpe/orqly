@@ -14,9 +14,7 @@ function highlight(src: string): string {
   return esc(src).replace(TOKENS, (m, tpl, key, str, num, kw, punc) => {
     if (tpl) return `<span style="color:var(--accent);font-weight:600">${tpl}</span>`;
     if (key) return `<span style="color:var(--foreground)">${key}</span>`;
-    if (str) return `<span style="color:#14DB7F">${str}</span>`;
-    if (num) return `<span style="color:#ffc107">${num}</span>`;
-    if (kw) return `<span style="color:#2563EB">${kw}</span>`;
+    if (str || num || kw) return `<span style="color:var(--success)">${str || num || kw}</span>`;
     if (punc) return `<span style="color:var(--faint)">${punc}</span>`;
     return m;
   });
@@ -59,7 +57,7 @@ export function JsonTextarea({
       <div className="relative">
         <pre
           aria-hidden
-          className={`${boxCls} pointer-events-none absolute inset-0 overflow-hidden border-transparent text-transparent`}
+          className={`${boxCls} pointer-events-none absolute inset-0 overflow-hidden border-transparent text-foreground`}
           style={{
             transform: `translate(${-scroll.left}px, ${-scroll.top}px)`,
           }}
